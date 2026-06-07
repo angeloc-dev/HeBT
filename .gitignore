@@ -1,0 +1,11 @@
+# Cartelle di sistema e IDE
+.DS_Store
+.idea/
+*.iml
+
+# Spring Boot / Maven
+HeBTSpring/target/
+
+# React
+HeBTReact/node_modules/
+HeBTReact/dist/
