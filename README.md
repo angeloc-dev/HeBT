@@ -38,11 +38,13 @@ Per avviare l'infrastruttura del database in background, posizionati nella carte
 
 ```bash
 docker-compose up -d
+```
 
 Se hai la necessità di spegnere il database rimuovendo i container, esegui:
 
 ```bash
 docker-compose down
+```
 
 ### 2. Avvio del Server (Spring Boot)
 Assicurati di avere Java 21 installato. Entra nella cartella del backend ed esegui il wrapper di Maven per avviare l'applicazione:
@@ -50,5 +52,6 @@ Assicurati di avere Java 21 installato. Entra nella cartella del backend ed eseg
 ```bash
 cd HeBTSpring
 ./mvnw spring-boot:run
+```
 
 Il server backend sarà in ascolto su http://localhost:8080. Lo schema del database (tabelle, vincoli di unicità e relazioni) verrà autogenerato al primo avvio grazie alla configurazione ddl-auto=update.
