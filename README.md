@@ -31,8 +31,24 @@ Questo progetto è stato sviluppato seguendo le best practice dell'architettura 
 
 ## ⚙️ Setup Locale e Avvio
 
-### 1. Avvio del Database (Docker)
-L'applicazione richiede un'istanza di PostgreSQL attiva sulla porta `5433`. Puoi avviare il database isolato in un container eseguendo questo comando dal terminale:
+### 1. Avvio del Database (Docker Compose)
+L'applicazione utilizza PostgreSQL (versione 18+) per la persistenza dei dati, configurato sulla porta locale `5433` per evitare conflitti di sistema. I dati sono persistiti sul sistema ospitante tramite volumi Docker.
+
+Per avviare l'infrastruttura del database in background, posizionati nella cartella radice del progetto (`HeBT`) e lancia:
 
 ```bash
-docker run --name dispensa-db -e POSTGRES_PASSWORD=secret -e POSTGRES_DB=dispensa -p 5433:5432 -d postgres
+docker-compose up -d
+
+Se hai la necessità di spegnere il database rimuovendo i container, esegui:
+
+```bash
+docker-compose down
+
+### 2. Avvio del Server (Spring Boot)
+Assicurati di avere Java 21 installato. Entra nella cartella del backend ed esegui il wrapper di Maven per avviare l'applicazione:
+
+```bash
+cd HeBTSpring
+./mvnw spring-boot:run
+
+Il server backend sarà in ascolto su http://localhost:8080. Lo schema del database (tabelle, vincoli di unicità e relazioni) verrà autogenerato al primo avvio grazie alla configurazione ddl-auto=update.
