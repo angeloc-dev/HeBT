@@ -25,6 +25,7 @@ public class PantryService {
                 item.getId(),
                 item.getIngredient().getId(),
                 item.getIngredient().getName(),
+                item.getIngredient().getCategory(),
                 item.getCurrentAmount(),
                 item.getUnit(),
                 item.getExpirationDate(),

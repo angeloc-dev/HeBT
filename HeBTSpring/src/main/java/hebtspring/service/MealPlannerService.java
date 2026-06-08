@@ -1,6 +1,7 @@
 package hebtspring.service;
 
 import hebtspring.dto.MealPlanDTO;
+import hebtspring.dto.PantryItemDTO;
 import hebtspring.dto.ShoppingListItemDTO;
 import hebtspring.model.*;
 import hebtspring.repository.MealPlanRepository;
@@ -128,5 +129,29 @@ public class MealPlannerService {
         }
 
         mealPlanRepository.delete(mealPlan);
+    }
+
+    public PantryItemDTO purchaseShoppingListItem(Long shoppingListItemId, LocalDate expirationDate) {
+        ShoppingListItem listItem = shoppingListItemRepository.findById(shoppingListItemId)
+                .orElseThrow(() -> new IllegalArgumentException("Shopping List Item not found"));
+        if (Boolean.TRUE.equals(listItem.getIsPurchased())) {
+            throw new IllegalStateException("This item has already been purchased and placed in the pantry!");
+        }
+
+        PantryItemDTO newPantryItemDTO = new PantryItemDTO(
+                null,
+                listItem.getIngredient().getId(),
+                listItem.getIngredient().getName(),
+                listItem.getAmount(),
+                listItem.getUnit(),
+                expirationDate,
+                LocalDate.now()
+        );
+
+        PantryItemDTO savedPantryItem = pantryService.addPantryItem(newPantryItemDTO);
+        listItem.setIsPurchased(true);
+        shoppingListItemRepository.save(listItem);
+
+        return savedPantryItem;
     }
 }

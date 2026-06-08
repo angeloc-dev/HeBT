@@ -7,6 +7,7 @@ public record PantryItemDTO(
         Long id,
         Long ingredientId,
         String ingredientName,
+        String category,
         BigDecimal currentAmount,
         String unit,
         LocalDate expirationDate,
