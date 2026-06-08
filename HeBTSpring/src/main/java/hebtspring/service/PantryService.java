@@ -1,11 +1,15 @@
 package hebtspring.service;
 
 import hebtspring.dto.PantryItemDTO;
+import hebtspring.model.Ingredient;
+import hebtspring.model.PantryItem;
+import hebtspring.repository.IngredientRepository;
 import hebtspring.repository.PantryItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -13,39 +17,80 @@ import java.util.List;
 public class PantryService {
 
     private final PantryItemRepository pantryItemRepository;
+    private final IngredientRepository ingredientRepository;
 
-    /**
-     * CASO D'USO 3: Controllare la Dispensa
-     * Ritorna tutti i lotti attualmente disponibili in casa (current_amount > 0).
-     * * Funzionalità "Smart" da implementare qui:
-     * 1. Filtrare in automatico i record dove current_amount è sceso a 0.
-     * 2. Ordinare i risultati: prima quelli che stanno per scadere (Scadenza ASC).
-     * 3. (Opzionale) Raggruppare le risposte per 'categoria' per mostrare
-     * la dispensa divisa a schermo (es. Frigo, Secco, Ortofrutta).
-     */
+    // Metodo di utilità per trasformare l'Entity in DTO
+    private PantryItemDTO mapToDTO(PantryItem item) {
+        return new PantryItemDTO(
+                item.getId(),
+                item.getIngredient().getId(),
+                item.getIngredient().getName(),
+                item.getCurrentAmount(),
+                item.getUnit(),
+                item.getExpirationDate(),
+                item.getPurchaseDate()
+        );
+    }
+
     public List<PantryItemDTO> checkPantryInventory() {
-        // @todo
-        // return pantryItemRepository.findByCurrentAmountGreaterThanOrderByExpirationDateAsc(BigDecimal.ZERO)
-        //        .stream().map(this::mapToDTO).toList();
-        return null;
+        return pantryItemRepository.findByCurrentAmountGreaterThanOrderByExpirationDateAsc(BigDecimal.ZERO)
+                .stream()
+                .map(this::mapToDTO)
+                .toList();
     }
 
-    /**
-     * Aggiunge un nuovo acquisto (Lotto) in dispensa con la sua scadenza.
-     */
     public PantryItemDTO addPantryItem(PantryItemDTO itemDTO) {
-        // @todo
-        return null;
+        if (itemDTO == null) {
+            throw new IllegalArgumentException("Item DTO is null");
+        }
+
+        Ingredient ingredient = ingredientRepository.findById(itemDTO.ingredientId())
+                .orElseThrow(() -> new IllegalArgumentException("Ingredient not found"));
+
+        PantryItem newPantryItem = PantryItem.builder()
+                .ingredient(ingredient)
+                .currentAmount(itemDTO.currentAmount())
+                .unit(itemDTO.unit())
+                .expirationDate(itemDTO.expirationDate())
+                .purchaseDate(LocalDate.now())
+                .build();
+
+        PantryItem saved = pantryItemRepository.save(newPantryItem);
+        return this.mapToDTO(saved);
     }
 
-    /**
-     * CASO D'USO 4 (Parte core): Logica FIFO
-     * 1. Recupera i lotti dell'ingrediente ordinati per scadenza (ASC).
-     * 2. Cicla sui lotti e sottrae la 'amountNeeded'.
-     * 3. Se un lotto va a 0, lo elimina (o lo imposta a 0) e passa al lotto successivo.
-     * 4. Lancia eccezione se la dispensa non ha abbastanza quantità.
-     */
+    public BigDecimal getAvailableAmountValidForDate(Long ingredientId, LocalDate targetDate) {
+        List<PantryItem> validBatches = pantryItemRepository
+                .findByIngredientIdAndExpirationDateGreaterThanEqual(ingredientId, targetDate);
+
+        return validBatches.stream()
+                .map(PantryItem::getCurrentAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
     public void consumeIngredientFifo(Long ingredientId, BigDecimal amountNeeded) {
-        // @todo
+        List<PantryItem> batches = pantryItemRepository
+                .findByIngredientIdAndCurrentAmountGreaterThanOrderByExpirationDateAsc(ingredientId, BigDecimal.ZERO);
+
+        BigDecimal remainingToConsume = amountNeeded;
+
+        for (PantryItem batch : batches) {
+            if (remainingToConsume.compareTo(BigDecimal.ZERO) <= 0) {
+                break;
+            }
+            BigDecimal amountInThisBatch = batch.getCurrentAmount();
+
+            if (amountInThisBatch.compareTo(remainingToConsume) <= 0) {
+                remainingToConsume = remainingToConsume.subtract(amountInThisBatch);
+                batch.setCurrentAmount(BigDecimal.ZERO);
+            } else {
+                batch.setCurrentAmount(amountInThisBatch.subtract(remainingToConsume));
+                remainingToConsume = BigDecimal.ZERO;
+            }
+            pantryItemRepository.save(batch);
+        }
+        if (remainingToConsume.compareTo(BigDecimal.ZERO) > 0) {
+            throw new RuntimeException("Warning: You don't have enough in your pantry for ingredient ID. " + ingredientId);
+        }
     }
 }
