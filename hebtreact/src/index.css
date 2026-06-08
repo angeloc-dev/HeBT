@@ -2,6 +2,7 @@
 
 @theme {
     --color-background: hsl(var(--background));
+    --color-background-secondary: hsl(var(--background-secondary));
     --color-foreground: hsl(var(--foreground));
     --color-card: hsl(var(--card));
     --color-card-foreground: hsl(var(--card-foreground));
@@ -27,29 +28,27 @@
 
 @layer base {
     :root {
-        --background: 210 40% 98%;
-        --foreground: 222.2 84% 4.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 222.2 84% 4.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 222.2 84% 4.9%;
-        --primary: 160 84% 39%;
-        --primary-foreground: 210 40% 98%;
+        --background: 240 10% 4%;
+        --background-secondary: 240 10% 10%;
+        --foreground: 0 0% 98%;
+        --card: 240 10% 6%;
+        --card-foreground: 0 0% 98%;
+        --popover: 240 10% 6%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 142 71% 45%;
+        --primary-foreground: 144 100% 11%;
         --secondary: 38 92% 50%;
-        --secondary-foreground: 222.2 47.4% 11.2%;
-        --muted: 210 40% 96.1%;
-        --muted-foreground: 215.4 16.3% 46.9%;
-        --accent: 210 40% 96.1%;
-        --accent-foreground: 222.2 47.4% 11.2%;
+        --secondary-foreground: 240 6% 10%;
+        --muted: 240 4% 16%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 240 4% 16%;
+        --accent-foreground: 0 0% 98%;
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 210 40% 98%;
-        --border: 214.3 31.8% 91.4%;
-        --input: 214.3 31.8% 91.4%;
-        --ring: 160 84% 39%;
+        --border: 240 6% 15%;
+        --input: 240 6% 15%;
+        --ring: 142 71% 45%;
         --radius: 0.75rem;
-    }
-
-    .dark {
     }
 
     body {
@@ -76,22 +75,58 @@
         font-weight: 400;
         font-style: normal;
         letter-spacing: 0.09rem;
-        @apply transition-all duration-300 ease-in-out transform;
+        @apply transition-all text-foreground duration-300 ease-in-out transform;
     }
     .font-logo:hover {
-        @apply scale-105 -translate-y-0.5;
+        @apply scale-105 -translate-y-0.5 text-primary;
     }
+
     .nav-link {
-        @apply relative inline-block pb-1 text-primary-foreground font-medium transition-all duration-300 ease-in-out transform;
+        @apply relative inline-block pb-1 text-muted-foreground font-medium transition-all duration-300 ease-in-out transform;
     }
     .nav-link::after {
         content: '';
         @apply absolute left-0 bottom-0 h-[2px] w-0 bg-secondary transition-all duration-300 ease-in-out;
     }
+
     .nav-link:hover {
-        @apply scale-100 -translate-y-0.5;
+        @apply scale-105 -translate-y-0.5 text-foreground;
     }
     .nav-link:hover::after {
         @apply w-full;
+    }
+    .nav-link.active {
+        @apply text-foreground font-bold;
+    }
+    .nav-link.active::after {
+        @apply w-full bg-secondary;
+    }
+
+    .button-icon {
+        @apply text-muted-foreground cursor-pointer transition-all duration-200 ease-in-out transform;
+    }
+    .button-icon:hover {
+        @apply scale-105 text-foreground;
+    }
+
+    .animate-in {
+        animation-fill-mode: both;
+    }
+    .slide-in-from-top-2 {
+        animation-name: slideInFromTop2;
+    }
+    .duration-200 {
+        animation-duration: 200ms;
+    }
+}
+
+@keyframes slideInFromTop2 {
+    from {
+        opacity: 0;
+        transform: translateY(-0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
