@@ -7,5 +7,6 @@ public record RecipeDTO(
         String title,
         String description,
         String instructions,
+        String image,
         List<RecipeIngredientDTO> ingredients
 ) {}

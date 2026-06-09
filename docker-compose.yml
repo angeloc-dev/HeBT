@@ -12,20 +12,7 @@ services:
       - postgres_data:/var/lib/postgresql
     restart: unless-stopped
 
-  backend:
-    build:
-      context: ./HeBTSpring 
-    container_name: hebt-backend
-    ports:
-      - "8080:8080" 
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/dispensa
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=secret
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-    depends_on:
-      - db 
-    restart: unless-stopped
+
 
 volumes:
   postgres_data:

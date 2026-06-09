@@ -10,6 +10,7 @@ import com.example.hebtspring.repository.RecipeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -35,6 +36,7 @@ public class RecipeService {
                 recipe.getTitle(),
                 recipe.getDescription(),
                 recipe.getInstructions(),
+                recipe.getImageUrl(),
                 ingredientDTOs
         );
     }
@@ -45,22 +47,28 @@ public class RecipeService {
         return mapToDTO(recipe);
     }
 
+    public List<RecipeDTO> getAllRecipes() {
+        List<Recipe> recipes = recipeRepository.findAll();
+        List<RecipeDTO> recipeDTOS = new ArrayList<>();
+        for (Recipe recipe : recipes) {
+            recipeDTOS.add(mapToDTO(recipe));
+        }
+        return  recipeDTOS;
+    }
+
     public RecipeDTO createRecipe(RecipeDTO recipeDTO) {
         if (recipeDTO == null){
             throw new IllegalArgumentException("RecipeDTO is null.");
         }
-
         Recipe newRecipe = Recipe.builder()
                 .title(recipeDTO.title())
                 .description(recipeDTO.description())
                 .instructions(recipeDTO.instructions())
+                .imageUrl(recipeDTO.image())
                 .build();
-
         if (recipeDTO.ingredients() != null) {
             for (RecipeIngredientDTO riDTO : recipeDTO.ingredients()) {
-
                 Ingredient ingredient;
-
                 if (riDTO.ingredientId() != null) {
                     ingredient = ingredientRepository.findById(riDTO.ingredientId())
                             .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + riDTO.ingredientId()));
@@ -74,7 +82,6 @@ public class RecipeService {
                                 return ingredientRepository.save(newIng);
                             });
                 }
-
                 RecipeIngredient recipeIngredient = RecipeIngredient.builder()
                         .recipe(newRecipe)
                         .ingredient(ingredient)
@@ -82,13 +89,58 @@ public class RecipeService {
                         .unit(riDTO.unit())
                         .section(riDTO.section())
                         .build();
-
                 newRecipe.getIngredients().add(recipeIngredient);
             }
         }
-
         Recipe savedRecipe = recipeRepository.save(newRecipe);
-
         return mapToDTO(savedRecipe);
+    }
+
+    public RecipeDTO updateRecipe(Long id, RecipeDTO recipeDTO) {
+        Recipe existingRecipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Ricetta non trovata: " + id));
+        existingRecipe.setTitle(recipeDTO.title());
+        existingRecipe.setDescription(recipeDTO.description());
+        existingRecipe.setInstructions(recipeDTO.instructions());
+        existingRecipe.setImageUrl(recipeDTO.image());
+        existingRecipe.getIngredients().clear();
+
+        if (recipeDTO.ingredients() != null) {
+            for (RecipeIngredientDTO riDTO : recipeDTO.ingredients()) {
+
+                Ingredient ingredient;
+                if (riDTO.ingredientId() != null) {
+                    ingredient = ingredientRepository.findById(riDTO.ingredientId())
+                            .orElseThrow(() -> new IllegalArgumentException("Ingredient not found: " + riDTO.ingredientId()));
+                } else {
+                    ingredient = ingredientRepository.findByNameIgnoreCase(riDTO.ingredientName())
+                            .orElseGet(() -> {
+                                Ingredient newIng = Ingredient.builder()
+                                        .name(riDTO.ingredientName())
+                                        .category("todo")
+                                        .build();
+                                return ingredientRepository.save(newIng);
+                            });
+                }
+                RecipeIngredient recipeIngredient = RecipeIngredient.builder()
+                        .recipe(existingRecipe)
+                        .ingredient(ingredient)
+                        .amount(riDTO.amount())
+                        .unit(riDTO.unit())
+                        .section(riDTO.section())
+                        .build();
+
+                existingRecipe.getIngredients().add(recipeIngredient);
+            }
+        }
+        Recipe savedRecipe = recipeRepository.save(existingRecipe);
+        return mapToDTO(savedRecipe);
+    }
+
+    public void deleteRecipe(Long id) {
+        if (!recipeRepository.existsById(id)) {
+            throw new IllegalArgumentException("Ricetta non trovata: " + id);
+        }
+        recipeRepository.deleteById(id);
     }
 }

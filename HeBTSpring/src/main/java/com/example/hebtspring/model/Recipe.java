@@ -23,10 +23,12 @@ public class Recipe {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String instructions;
 
-    // Relazione bidirezionale per avere subito gli ingredienti quando viene caricata la ricetta
+    @Column(name = "image_url", length = 1000)
+    private String imageUrl;
+
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<RecipeIngredient> ingredients = new ArrayList<>();

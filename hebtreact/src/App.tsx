@@ -9,7 +9,7 @@ import Pantry from "./pages/Pantry";
 function App() {
     return (
         <Router>
-            <div className="relative min-h-screen bg-background overflow-hidden">
+            <div className="relative h-screen bg-background overflow-hidden">
                 <div className="absolute inset-0 z-0 pointer-events-none">
                     <SoftAurora
                         speed={0.4}
@@ -28,7 +28,7 @@ function App() {
                         mouseInfluence={0.2}
                     />
                 </div>
-                <div className="relative z-10 flex flex-col min-h-screen">
+                <div className="relative z-10 flex flex-col h-screen overflow-y-auto">
                     <Navbar />
                     <main className="flex-grow container mx-auto">
                         <Routes>

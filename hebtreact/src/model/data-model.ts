@@ -11,7 +11,7 @@ export interface Recipe {
     description: string;
     instructions: string;
     image?: string;
-    ingredients: Ingredient[];
+    ingredients: RecipeIngredient[];
 }
 
 export interface RecipeIngredient {
@@ -21,6 +21,8 @@ export interface RecipeIngredient {
     unit: string;
     section: string;
 }
+
+export type DraftIngredient = Omit<RecipeIngredient, 'ingredientId'> & { ingredientId?: number };
 
 export interface MealPlan {
     id: number;

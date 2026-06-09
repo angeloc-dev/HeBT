@@ -7,62 +7,32 @@ import "swiper/css/free-mode";
 import CardRecipe from "@/components/CardRecipe.tsx";
 import type {Recipe} from "@/model/data-model.ts";
 import {FreeMode, Mousewheel} from "swiper/modules";
-import {useMemo} from "react";
+import {useEffect, useMemo, useState} from "react";
 import Container from "@/components/ui/Container.tsx";
+import {recipeService} from "@/services/recipeService.ts";
 
-const MOCK_RECIPES: Recipe[] = [
-    {
-        id: 1,
-        title: "Pasta alla Milanese (Siciliana)",
-        description: "",
-        instructions: "",
-        ingredients: [],
-        image: "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?q=80&w=800&auto=format&fit=crop"
-    },
-    {
-        id: 2,
-        title: "Caponata di Melanzane",
-        description: "",
-        instructions: "",
-        ingredients: [],
-        image: "https://images.unsplash.com/photo-1574484284002-952d92456975?q=80&w=800&auto=format&fit=crop"
-    },
-    {
-        id: 3,
-        title: "Risotto allo Zafferano",
-        description: "",
-        instructions: "",
-        ingredients: [],
-        image: "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?q=80&w=800&auto=format&fit=crop"
-    },
-    {
-        id: 4,
-        title: "Pasta alla Milanese (Siciliana)",
-        description: "",
-        instructions: "",
-        ingredients: [],
-        image: "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?q=80&w=800&auto=format&fit=crop"
-    },
-    {
-        id: 5,
-        title: "Caponata di Melanzane",
-        description: "",
-        instructions: "",
-        ingredients: [],
-        image: "https://images.unsplash.com/photo-1574484284002-952d92456975?q=80&w=800&auto=format&fit=crop"
-    },
-    {
-        id: 6,
-        title: "Risotto allo Zafferano",
-        description: "",
-        instructions: "",
-        ingredients: [],
-        image: "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?q=80&w=800&auto=format&fit=crop"
-    }
-];
 
 export default function Home() {
     const navigate = useNavigate();
+    const [recipes, setRecipes] = useState<Recipe[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchRecipes = async () => {
+            try {
+                setIsLoading(true);
+                const data = await recipeService.getAllRecipes();
+                setRecipes(data);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Errore sconosciuto");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchRecipes();
+    }, []);
 
     const calendarDays = useMemo(() => {
         const days = [];
@@ -128,25 +98,40 @@ export default function Home() {
             </Container>
             <Container className="overflow-hidden">
                 <h2 className="text-2xl font-bold mb-6 text-foreground">Ispirazione dalla Cucina</h2>
-                <SwiperCarousel
-                    modules={[FreeMode, Mousewheel]}
-                    mousewheel={{ forceToAxis: true }}
-                    freeMode={true}
-                    spaceBetween={16}
-                    slidesPerView={1.2}
-                    breakpoints={{
-                        640: { slidesPerView: 2.2 },
-                        1024: { slidesPerView: 3.5 },
-                        1280: { slidesPerView: 4.5 }
-                    }}
-                    className="w-full pb-4"
-                >
-                    {MOCK_RECIPES.map((recipe) => (
-                        <SwiperSlide key={recipe.id} className="h-auto">
-                            <CardRecipe recipe={recipe} />
-                        </SwiperSlide>
-                    ))}
-                </SwiperCarousel>
+                {error ? (
+                    <div className="flex flex-col items-center justify-center w-full h-64 bg-destructive/10 border border-destructive/20 rounded-2xl p-6">
+                        <span className="text-destructive font-bold text-lg mb-2">Ops! Qualcosa è andato storto.</span>
+                        <span className="text-muted-foreground text-sm text-center">{error}</span>
+                    </div>
+                ) : (
+                    <SwiperCarousel
+                        modules={[FreeMode, Mousewheel]}
+                        mousewheel={{ forceToAxis: true }}
+                        freeMode={true}
+                        spaceBetween={16}
+                        slidesPerView={1.2}
+                        breakpoints={{
+                            640: { slidesPerView: 2.2 },
+                            1024: { slidesPerView: 3.5 },
+                            1280: { slidesPerView: 4.5 }
+                        }}
+                        className="w-full pb-4"
+                    >
+                        {isLoading ? (
+                            Array.from({ length: 5 }).map((_, index) => (
+                                <SwiperSlide key={`skeleton-${index}`} className="h-auto">
+                                    <div className="relative h-64 w-full rounded-2xl bg-border/30 animate-pulse" />
+                                </SwiperSlide>
+                            ))
+                        ) : (
+                            recipes.map((recipe) => (
+                                <SwiperSlide key={recipe.id} className="h-auto">
+                                    <CardRecipe recipe={recipe} />
+                                </SwiperSlide>
+                            ))
+                        )}
+                    </SwiperCarousel>
+                )}
             </Container>
             <section className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mx-auto w-full max-w-4xl mt-4">
                 <Button
