@@ -1,6 +1,7 @@
 import { type ReactElement, useState } from "react";
+import {FiMenu, FiX} from "react-icons/fi";
 import { Link, NavLink } from "react-router-dom"; // <-- Aggiunto NavLink
-import { Menu, X } from "lucide-react";
+
 
 function Navbar(): ReactElement {
     const [mobileSidebarIsOpen, setMobileSidebarIsOpen] = useState<boolean>(false);
@@ -23,7 +24,7 @@ function Navbar(): ReactElement {
                     onClick={() => setMobileSidebarIsOpen(!mobileSidebarIsOpen)}
                     aria-label="Toggle Menu"
                 >
-                    {mobileSidebarIsOpen ? <X className="w-6 h-6 duration-200" /> : <Menu className="w-6 h-6 duration-200" />}
+                    {mobileSidebarIsOpen ? <FiX className="w-6 h-6 duration-200" /> : <FiMenu className="w-6 h-6 duration-200" />}
                 </button>
                 {mobileSidebarIsOpen && (
                     <div className="absolute top-[calc(100%+5px)] left-4 right-4 md:hidden border border-border/50 rounded-[10px] bg-background-secondary/95 backdrop-blur-md shadow-2xl animate-in slide-in-from-top-2 duration-200 z-50">

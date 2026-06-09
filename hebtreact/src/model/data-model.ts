@@ -10,7 +10,7 @@ export interface Recipe {
     title: string;
     description: string;
     instructions: string;
-    imageUrl?: string;
+    image?: string;
     ingredients: Ingredient[];
 }
 

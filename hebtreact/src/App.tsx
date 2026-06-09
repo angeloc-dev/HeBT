@@ -1,6 +1,6 @@
 import Navbar from "./components/Navbar";
 import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
-import SoftAurora from "./components/SoftAurora";
+import SoftAurora from "./components/SoftAurora.jsx";
 import Home from "./pages/Home";
 import Recipes from "./pages/Recipes";
 import Shopping from "./pages/Shopping";

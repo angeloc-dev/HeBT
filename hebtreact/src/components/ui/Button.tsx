@@ -7,7 +7,7 @@ function Button({ children, className, type = "button", ...props }: ButtonHTMLAt
       <button
           type={type}
           className={cn(
-              "flex items-center justify-center gap-2 px-5 w-fit h-11 font-semibold rounded-[8px] text-sm",
+              "flex items-center justify-center gap-2 px-5 h-11 font-semibold rounded-[8px] text-sm",
               "bg-secondary text-secondary-foreground shadow-md cursor-pointer",
               "transition-all duration-200 ease-in-out transform",
               "hover:scale-102 hover:-translate-y-0.5 hover:brightness-110",
