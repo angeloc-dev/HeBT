@@ -11,10 +11,11 @@ import java.util.Optional;
 
 @Repository
 public interface MealPlanRepository extends JpaRepository<MealPlan, Long> {
-
     // Recupera i piatti pianificati tra una data di inizio e una di fine
     List<MealPlan> findByPlannedDateBetween(LocalDate startDate, LocalDate endDate);
 
     // Recupera un piatto pianificato per controllo doppioni
     Optional<MealPlan> findByPlannedDateAndMealTypeAndRecipe(LocalDate plannedDate, String mealType, Recipe recipe);
+
+    boolean existsByRecipeId(Long recipeId);
 }

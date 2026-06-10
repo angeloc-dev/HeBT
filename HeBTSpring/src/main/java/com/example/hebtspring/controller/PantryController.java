@@ -27,4 +27,10 @@ public class PantryController {
         PantryItemDTO savedPantryItem = pantryService.addPantryItem(pantryItemDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedPantryItem);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePantryItem(@PathVariable Long id) {
+        pantryService.deletePantryItem(id);
+        return  ResponseEntity.noContent().build();
+    }
 }

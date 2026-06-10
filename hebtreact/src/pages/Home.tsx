@@ -125,7 +125,10 @@ export default function Home() {
                             ))
                         ) : (
                             recipes.map((recipe) => (
-                                <SwiperSlide key={recipe.id} className="h-auto">
+                                <SwiperSlide key={recipe.id}
+                                             className="h-auto"
+                                             onClick={() =>  navigate(`/recipes/${recipe.id}`)}
+                                >
                                     <CardRecipe recipe={recipe} />
                                 </SwiperSlide>
                             ))

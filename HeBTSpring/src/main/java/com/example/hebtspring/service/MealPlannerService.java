@@ -155,4 +155,18 @@ public class MealPlannerService {
 
         return savedPantryItem;
     }
+
+    public void deleteMealPlanner(Long id) {
+        if (!mealPlanRepository.existsById(id)) {
+            throw new IllegalArgumentException("Piatto programmato non trovato: " + id);
+        }
+        mealPlanRepository.deleteById(id);
+    }
+
+    public void deleteShoppingListItem(Long id) {
+        if (!shoppingListItemRepository.existsById(id)) {
+            throw new IllegalArgumentException("Voce della lista della spesa non trovata: " + id);
+        }
+        shoppingListItemRepository.deleteById(id);
+    }
 }

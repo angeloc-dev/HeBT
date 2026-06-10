@@ -32,4 +32,10 @@ public class ShoppingListController {
         PantryItemDTO pantryItemDTO = mealPlannerService.purchaseShoppingListItem(id, request.expirationDate());
         return ResponseEntity.ok(pantryItemDTO);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteShoppingListItem(@PathVariable Long id) {
+        mealPlannerService.deleteShoppingListItem(id);
+        return  ResponseEntity.noContent().build();
+    }
 }

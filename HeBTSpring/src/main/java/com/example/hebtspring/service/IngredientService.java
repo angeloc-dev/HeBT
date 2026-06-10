@@ -43,4 +43,11 @@ public class IngredientService {
         Ingredient saved = ingredientRepository.save(newIngredient);
         return mapToDTO(saved);
     }
+
+    public void deleteIngredient(Long id) {
+        if (!ingredientRepository.existsById(id)) {
+            throw new IllegalArgumentException("Ingrediente non trovato: " + id);
+        }
+        ingredientRepository.deleteById(id);
+    }
 }

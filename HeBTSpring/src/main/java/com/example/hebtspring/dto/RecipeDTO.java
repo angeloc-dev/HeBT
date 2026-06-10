@@ -8,5 +8,6 @@ public record RecipeDTO(
         String description,
         String instructions,
         String image,
-        List<RecipeIngredientDTO> ingredients
+        List<RecipeIngredientDTO> ingredients,
+        Boolean isInMealPlan
 ) {}

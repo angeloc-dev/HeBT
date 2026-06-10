@@ -94,4 +94,11 @@ public class PantryService {
             throw new RuntimeException("Warning: You don't have enough in your pantry for ingredient ID. " + ingredientId);
         }
     }
+
+    public void deletePantryItem(Long id) {
+        if (!pantryItemRepository.existsById(id)) {
+            throw new IllegalArgumentException("Oggetto della dispensa non trovato: " + id);
+        }
+        pantryItemRepository.deleteById(id);
+    }
 }

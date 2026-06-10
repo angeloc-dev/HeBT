@@ -35,4 +35,10 @@ public class MealPlanController {
         mealPlannerService.confirmMealCooked(id);
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteMealPlanner(@PathVariable Long id) {
+        mealPlannerService.deleteMealPlanner(id);
+        return  ResponseEntity.noContent().build();
+    }
 }

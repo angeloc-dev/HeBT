@@ -12,6 +12,7 @@ export interface Recipe {
     instructions: string;
     image?: string;
     ingredients: RecipeIngredient[];
+    isInMealPlan: boolean;
 }
 
 export interface RecipeIngredient {
@@ -52,4 +53,16 @@ export interface ShoppingListItem {
     amount: number;
     unit: string;
     isPurchased: boolean;
+}
+
+export type ToastType = "success" | "error" | "warning";
+
+export interface Toast {
+    id: string;
+    message: string;
+    type: ToastType;
+}
+
+export interface ToastContextType {
+    addToast: (message: string, type: ToastType) => void;
 }

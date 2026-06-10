@@ -6,7 +6,9 @@ import com.example.hebtspring.model.Ingredient;
 import com.example.hebtspring.model.Recipe;
 import com.example.hebtspring.model.RecipeIngredient;
 import com.example.hebtspring.repository.IngredientRepository;
+import com.example.hebtspring.repository.MealPlanRepository;
 import com.example.hebtspring.repository.RecipeRepository;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +21,7 @@ public class RecipeService {
 
     private final RecipeRepository recipeRepository;
     private final IngredientRepository ingredientRepository;
+    private final MealPlanRepository mealPlanRepository;
 
     private RecipeDTO mapToDTO(Recipe recipe) {
         List<RecipeIngredientDTO> ingredientDTOs = recipe.getIngredients().stream()
@@ -31,13 +34,16 @@ public class RecipeService {
                 ))
                 .toList();
 
+        boolean isPianificata = mealPlanRepository.existsByRecipeId(recipe.getId());
+
         return new RecipeDTO(
                 recipe.getId(),
                 recipe.getTitle(),
                 recipe.getDescription(),
                 recipe.getInstructions(),
                 recipe.getImageUrl(),
-                ingredientDTOs
+                ingredientDTOs,
+                isPianificata
         );
     }
 
@@ -103,11 +109,26 @@ public class RecipeService {
         existingRecipe.setDescription(recipeDTO.description());
         existingRecipe.setInstructions(recipeDTO.instructions());
         existingRecipe.setImageUrl(recipeDTO.image());
-        existingRecipe.getIngredients().clear();
-
+        List<RecipeIngredient> daRimuovere = new ArrayList<>();
+        for (RecipeIngredient ri : existingRecipe.getIngredients()) {
+            boolean trovato = false;
+            if (recipeDTO.ingredients() != null) {
+                for (RecipeIngredientDTO dto : recipeDTO.ingredients()) {
+                    boolean matchId = dto.ingredientId() != null && dto.ingredientId().equals(ri.getIngredient().getId());
+                    boolean matchNome = dto.ingredientName() != null && dto.ingredientName().equalsIgnoreCase(ri.getIngredient().getName());
+                    if ((matchId || matchNome) && java.util.Objects.equals(ri.getSection(), dto.section())) {
+                        trovato = true;
+                        break;
+                    }
+                }
+            }
+            if (!trovato) {
+                daRimuovere.add(ri);
+            }
+        }
+        existingRecipe.getIngredients().removeAll(daRimuovere);
         if (recipeDTO.ingredients() != null) {
             for (RecipeIngredientDTO riDTO : recipeDTO.ingredients()) {
-
                 Ingredient ingredient;
                 if (riDTO.ingredientId() != null) {
                     ingredient = ingredientRepository.findById(riDTO.ingredientId())
@@ -122,25 +143,38 @@ public class RecipeService {
                                 return ingredientRepository.save(newIng);
                             });
                 }
-                RecipeIngredient recipeIngredient = RecipeIngredient.builder()
-                        .recipe(existingRecipe)
-                        .ingredient(ingredient)
-                        .amount(riDTO.amount())
-                        .unit(riDTO.unit())
-                        .section(riDTO.section())
-                        .build();
+                final Long targetIngredientId = ingredient.getId();
+                RecipeIngredient esistente = existingRecipe.getIngredients().stream()
+                        .filter(ri -> ri.getIngredient().getId().equals(targetIngredientId)
+                                && java.util.Objects.equals(ri.getSection(), riDTO.section()))
+                        .findFirst()
+                        .orElse(null);
 
-                existingRecipe.getIngredients().add(recipeIngredient);
+                if (esistente != null) {
+                    esistente.setAmount(riDTO.amount());
+                    esistente.setUnit(riDTO.unit());
+                } else {
+                    RecipeIngredient nuovoRecipeIngredient = RecipeIngredient.builder()
+                            .recipe(existingRecipe)
+                            .ingredient(ingredient)
+                            .amount(riDTO.amount())
+                            .unit(riDTO.unit())
+                            .section(riDTO.section())
+                            .build();
+
+                    existingRecipe.getIngredients().add(nuovoRecipeIngredient);
+                }
             }
         }
+
         Recipe savedRecipe = recipeRepository.save(existingRecipe);
         return mapToDTO(savedRecipe);
     }
 
+    @Transactional
     public void deleteRecipe(Long id) {
-        if (!recipeRepository.existsById(id)) {
-            throw new IllegalArgumentException("Ricetta non trovata: " + id);
-        }
-        recipeRepository.deleteById(id);
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Ricetta non trovata: " + id));
+        recipeRepository.delete(recipe);
     }
 }
