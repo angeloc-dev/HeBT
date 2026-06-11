@@ -1,10 +1,8 @@
+import { API_BASE_URL } from "@/model/constants";
 import type { Recipe } from "@/model/data-model.ts";
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8080/api";
-
 export const recipeService = {
-
     async getAllRecipes(): Promise<Recipe[]> {
         try {
             const response = await axios.get(`${API_BASE_URL}/recipes`);
@@ -14,7 +12,6 @@ export const recipeService = {
             throw error;
         }
     },
-
     async getRecipeById(id: number): Promise<Recipe> {
         try {
             const response = await axios.get(`${API_BASE_URL}/recipes/${id}`);
@@ -24,10 +21,17 @@ export const recipeService = {
             throw error;
         }
     },
-
+    async getCookableRecipes(): Promise<Recipe[]> {
+        try {
+            const response = await axios.get(`${API_BASE_URL}/recipes/cookable`);
+            return response.data;
+        } catch (error) {
+            console.error("Errore nel recupero delle ricette disponibili:", error);
+            throw error;
+        }
+    },
     async createRecipe(recipe: Recipe): Promise<Recipe> {
         try {
-            console.log("CREATE:", recipe);
             const response = await axios.post(`${API_BASE_URL}/recipes`, recipe);
             return response.data;
         } catch (error){
@@ -38,7 +42,6 @@ export const recipeService = {
 
     async editRecipe(id: number, recipe: Recipe): Promise<Recipe> {
         try {
-            console.log("EDIT:", recipe);
             const response = await axios.put(`${API_BASE_URL}/recipes/${id}`, recipe);
             return response.data;
         } catch (error){

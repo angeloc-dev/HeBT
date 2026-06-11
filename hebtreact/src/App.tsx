@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import SoftAurora from "./components/SoftAurora.jsx";
 import Home from "./pages/Home";
 import Recipes from "./pages/Recipes";
-import Shopping from "./pages/Shopping";
+import Planner from "./pages/Planner";
 import Pantry from "./pages/Pantry";
 
 function App() {
@@ -35,7 +35,7 @@ function App() {
                             <Route path="/" element={<Home />} />
                             <Route path="/recipes" element={<Recipes />} />
                             <Route path="/recipes/:id" element={<Recipes />} />
-                            <Route path="/shopping" element={<Shopping />} />
+                            <Route path="/planner" element={<Planner />} />
                             <Route path="/pantry" element={<Pantry />} />
                         </Routes>
                     </main>

@@ -28,6 +28,11 @@ public class RecipeController {
         return ResponseEntity.ok(recipeDTO);
     }
 
+    @GetMapping("/cookable")
+    public ResponseEntity<List<RecipeDTO>> getCookableRecipes() {
+        return ResponseEntity.ok(recipeService.getCookableRecipes());
+    }
+
     @PostMapping
     public ResponseEntity<RecipeDTO> createRecipe(@RequestBody RecipeDTO recipeDTO) {
         RecipeDTO savedRecipe = recipeService.createRecipe(recipeDTO);

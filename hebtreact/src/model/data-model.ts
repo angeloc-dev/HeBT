@@ -1,3 +1,4 @@
+import type { IconType } from "react-icons/lib";
 
 export interface Ingredient {
     id: number;
@@ -29,7 +30,7 @@ export interface MealPlan {
     id: number;
     recipeId: number;
     recipeTitle: string;
-    plannedData: Date;
+    plannedDate: string;
     mealType: string;
     servings: number;
 }
@@ -55,6 +56,7 @@ export interface ShoppingListItem {
     isPurchased: boolean;
 }
 
+// -- TOAST
 export type ToastType = "success" | "error" | "warning";
 
 export interface Toast {
@@ -66,3 +68,25 @@ export interface Toast {
 export interface ToastContextType {
     addToast: (message: string, type: ToastType) => void;
 }
+// -- MENU A TENDINA
+export interface OptionGroup {
+    label: string;
+    options: SelectOption[];
+}
+
+export interface SelectOption {
+    value: string | number;
+    label: string;
+    icon?: IconType;
+}
+
+// -- Vista Planner
+export type PlannerView = 'CALENDAR' | 'SHOPPING_LIST';
+
+export interface MealSlotConfig {
+    id: string;
+    label: string;
+    icon: IconType;
+}
+
+export type ButtonVariant = "default" | "secondary" | "outline" | "ghost" | "destructive";

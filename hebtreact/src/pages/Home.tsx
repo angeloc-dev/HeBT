@@ -1,39 +1,46 @@
 import {useNavigate} from "react-router-dom";
 import Button from "../components/ui/Button";
-import {FiBook, FiPackage, FiShoppingCart} from "react-icons/fi";
+import {FiBook, FiPackage, FiSearch, FiShoppingCart} from "react-icons/fi";
 import {Swiper as SwiperCarousel, SwiperSlide} from "swiper/react";
 import "swiper/css";
 import "swiper/css/free-mode";
 import CardRecipe from "@/components/CardRecipe.tsx";
 import type {Recipe} from "@/model/data-model.ts";
 import {FreeMode, Mousewheel} from "swiper/modules";
-import {useEffect, useMemo, useState} from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import Container from "@/components/ui/Container.tsx";
 import {recipeService} from "@/services/recipeService.ts";
-
+import {useToast} from "@/hooks/useToast.ts";
 
 export default function Home() {
     const navigate = useNavigate();
+    const { addToast } = useToast();
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchRecipes = async () => {
-            try {
-                setIsLoading(true);
-                const data = await recipeService.getAllRecipes();
-                setRecipes(data);
-            } catch (err) {
-                setError(err instanceof Error ? err.message : "Errore sconosciuto");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchRecipes();
+    const fetchRecipes = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const data = await recipeService.getAllRecipes();
+            setRecipes(data);
+        } catch (err) {
+            addToast(err instanceof Error ? err.message : "Errore sconosciuto", 'error');
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
+    useEffect(() => {
+        const loadInitialData = async () => {
+            await fetchRecipes();
+        };
+
+        loadInitialData();
+    }, [fetchRecipes]);
+
+
+
+    // @todo agganciare al server
     const calendarDays = useMemo(() => {
         const days = [];
         const today = new Date();
@@ -98,43 +105,48 @@ export default function Home() {
             </Container>
             <Container className="overflow-hidden">
                 <h2 className="text-2xl font-bold mb-6 text-foreground">Ispirazione dalla Cucina</h2>
-                {error ? (
-                    <div className="flex flex-col items-center justify-center w-full h-64 bg-destructive/10 border border-destructive/20 rounded-2xl p-6">
-                        <span className="text-destructive font-bold text-lg mb-2">Ops! Qualcosa è andato storto.</span>
-                        <span className="text-muted-foreground text-sm text-center">{error}</span>
-                    </div>
-                ) : (
-                    <SwiperCarousel
-                        modules={[FreeMode, Mousewheel]}
-                        mousewheel={{ forceToAxis: true }}
-                        freeMode={true}
-                        spaceBetween={16}
-                        slidesPerView={1.2}
-                        breakpoints={{
-                            640: { slidesPerView: 2.2 },
-                            1024: { slidesPerView: 3.5 },
-                            1280: { slidesPerView: 4.5 }
-                        }}
-                        className="w-full pb-4"
-                    >
-                        {isLoading ? (
-                            Array.from({ length: 5 }).map((_, index) => (
-                                <SwiperSlide key={`skeleton-${index}`} className="h-auto">
-                                    <div className="relative h-64 w-full rounded-2xl bg-border/30 animate-pulse" />
-                                </SwiperSlide>
-                            ))
-                        ) : (
-                            recipes.map((recipe) => (
-                                <SwiperSlide key={recipe.id}
-                                             className="h-auto"
-                                             onClick={() =>  navigate(`/recipes/${recipe.id}`)}
-                                >
-                                    <CardRecipe recipe={recipe} />
-                                </SwiperSlide>
-                            ))
-                        )}
-                    </SwiperCarousel>
-                )}
+                <SwiperCarousel
+                    modules={[FreeMode, Mousewheel]}
+                    mousewheel={{ forceToAxis: true }}
+                    freeMode={true}
+                    spaceBetween={16}
+                    slidesPerView={1.2}
+                    breakpoints={{
+                        640: { slidesPerView: 2.2 },
+                        1024: { slidesPerView: 3.5 },
+                        1280: { slidesPerView: 4.5 }
+                    }}
+                    className="w-full pb-4"
+                >
+                    {isLoading ? (
+                        Array.from({ length: 5 }).map((_, index) => (
+                            <SwiperSlide key={`skeleton-${index}`} className="h-auto">
+                                <div className="relative h-64 w-full rounded-2xl bg-border/30 animate-pulse" />
+                            </SwiperSlide>
+                        ))
+                    ) : recipes.length > 0 ? (
+                        recipes.map((recipe) => (
+                            <SwiperSlide key={recipe.id}
+                                         className="h-auto cursor-pointer"
+                                         onClick={() => navigate(`/recipes/${recipe.id}`)}
+                            >
+                                <CardRecipe recipe={recipe} />
+                            </SwiperSlide>
+                        ))
+                    ) : (
+                        <SwiperSlide className="w-full h-auto">
+                            <div className="flex flex-col items-center justify-center w-full h-64 bg-secondary/5 border border-dashed border-border/50 rounded-2xl p-6 text-center animate-in fade-in duration-500">
+                                <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mb-3">
+                                    <FiSearch className="w-6 h-6 text-muted-foreground" />
+                                </div>
+                                <span className="text-foreground font-bold text-lg mb-1">Nessuna ricetta trovata</span>
+                                <span className="text-muted-foreground text-sm max-w-sm">
+                                    Non ci sono ricette disponibili al momento. Aggiungi il tuo primo piatto per vederlo qui!
+                                </span>
+                            </div>
+                        </SwiperSlide>
+                    )}
+                </SwiperCarousel>
             </Container>
             <section className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mx-auto w-full max-w-4xl mt-4">
                 <Button
@@ -149,7 +161,7 @@ export default function Home() {
 
                 <Button
                     className="w-[80%] md:w-64 h-14"
-                    onClick={() => navigate("/shopping")}
+                    onClick={() => navigate("/planner")}
                 >
                     <span className="flex items-center gap-2 text-lg font-bold text-foreground">
                         <FiShoppingCart className="w-5 h-5" />

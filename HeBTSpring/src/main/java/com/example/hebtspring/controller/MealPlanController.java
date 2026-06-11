@@ -1,7 +1,7 @@
 package com.example.hebtspring.controller;
 
 import com.example.hebtspring.dto.MealPlanDTO;
-import com.example.hebtspring.service.MealPlannerService;
+import com.example.hebtspring.service.MealPlanService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,30 +15,37 @@ import java.util.List;
 @RequestMapping("/api/meal-plans")
 @CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class MealPlanController {
-    private final MealPlannerService mealPlannerService;
+    private final MealPlanService mealPlanService;
 
     @GetMapping
-    public ResponseEntity<List<MealPlanDTO>> getMealsBetweenDates(@RequestParam("startDate") LocalDate startDate,
-                                                                  @RequestParam("endDate") LocalDate endDate) {
-        List<MealPlanDTO> mealPlanDTO = mealPlannerService.getMealsBetweenDates(startDate, endDate);
+    public ResponseEntity<List<MealPlanDTO>> getMealsBetweenDates(
+            @RequestParam("startDate") LocalDate startDate,
+            @RequestParam("endDate") LocalDate endDate) {
+        List<MealPlanDTO> mealPlanDTO = mealPlanService.getMealsBetweenDates(startDate, endDate);
         return ResponseEntity.ok(mealPlanDTO);
     }
 
     @PostMapping
     public ResponseEntity<MealPlanDTO> scheduleMeal(@RequestBody MealPlanDTO mealPlanDTO) {
-        MealPlanDTO scheduledMealPlanDTO = mealPlannerService.scheduleMeal(mealPlanDTO);
+        MealPlanDTO scheduledMealPlanDTO = mealPlanService.scheduleMeal(mealPlanDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(scheduledMealPlanDTO);
     }
 
-    @PostMapping("{id}/cook")
-    public ResponseEntity<MealPlanDTO> confirmMealCooked(@PathVariable("id") Long id) {
-        mealPlannerService.confirmMealCooked(id);
+    @PutMapping("/{id}")
+    public ResponseEntity<MealPlanDTO> updateMealPlan(@PathVariable Long id, @RequestBody MealPlanDTO mealPlanDTO) {
+        MealPlanDTO updatedMealPlan = mealPlanService.updateMealPlan(id, mealPlanDTO);
+        return ResponseEntity.ok(updatedMealPlan);
+    }
+
+    @PostMapping("/{id}/cook")
+    public ResponseEntity<Void> confirmMealCooked(@PathVariable("id") Long id) {
+        mealPlanService.confirmMealCooked(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteMealPlanner(@PathVariable Long id) {
-        mealPlannerService.deleteMealPlanner(id);
-        return  ResponseEntity.noContent().build();
+        mealPlanService.deleteMealPlanner(id);
+        return ResponseEntity.noContent().build();
     }
 }

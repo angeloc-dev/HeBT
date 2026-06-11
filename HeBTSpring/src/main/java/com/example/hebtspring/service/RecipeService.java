@@ -3,25 +3,31 @@ package com.example.hebtspring.service;
 import com.example.hebtspring.dto.RecipeDTO;
 import com.example.hebtspring.dto.RecipeIngredientDTO;
 import com.example.hebtspring.model.Ingredient;
+import com.example.hebtspring.model.PantryItem;
 import com.example.hebtspring.model.Recipe;
 import com.example.hebtspring.model.RecipeIngredient;
 import com.example.hebtspring.repository.IngredientRepository;
 import com.example.hebtspring.repository.MealPlanRepository;
+import com.example.hebtspring.repository.PantryItemRepository;
 import com.example.hebtspring.repository.RecipeRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class RecipeService {
-
     private final RecipeRepository recipeRepository;
     private final IngredientRepository ingredientRepository;
     private final MealPlanRepository mealPlanRepository;
+    private final PantryItemRepository pantryItemRepository;
+    private final UnitConversionService unitConversionService;
 
     private RecipeDTO mapToDTO(Recipe recipe) {
         List<RecipeIngredientDTO> ingredientDTOs = recipe.getIngredients().stream()
@@ -30,7 +36,8 @@ public class RecipeService {
                         ri.getIngredient().getName(),
                         ri.getAmount(),
                         ri.getUnit(),
-                        ri.getSection()
+                        ri.getSection(),
+                        ri.getIngredient().getCategory()
                 ))
                 .toList();
 
@@ -59,9 +66,56 @@ public class RecipeService {
         for (Recipe recipe : recipes) {
             recipeDTOS.add(mapToDTO(recipe));
         }
-        return  recipeDTOS;
+        return recipeDTOS;
     }
 
+    public List<RecipeDTO> getCookableRecipes() {
+        List<PantryItem> availablePantryItems = pantryItemRepository.findByCurrentAmountGreaterThanOrderByExpirationDateAsc(BigDecimal.ZERO);
+        Map<Long, BigDecimal> pantryInventory = new HashMap<>();
+
+        for (PantryItem item : availablePantryItems) {
+            UnitConversionService.BaseQuantity baseQty = unitConversionService.convertToBase(
+                    item.getCurrentAmount(),
+                    item.getUnit(),
+                    item.getIngredient().getName()
+            );
+            pantryInventory.merge(
+                    item.getIngredient().getId(),
+                    baseQty.amount(),
+                    BigDecimal::add
+            );
+        }
+        List<Recipe> allRecipes = recipeRepository.findAll();
+        List<RecipeDTO> cookableRecipes = new ArrayList<>();
+
+        for (Recipe recipe : allRecipes) {
+            boolean canCook = true;
+            if (recipe.getIngredients().isEmpty()) {
+                continue;
+            }
+            for (RecipeIngredient ri : recipe.getIngredients()) {
+                UnitConversionService.BaseQuantity requiredQty = unitConversionService.convertToBase(
+                        ri.getAmount(),
+                        ri.getUnit(),
+                        ri.getIngredient().getName()
+                );
+                BigDecimal requiredBaseAmount = requiredQty.amount();
+                BigDecimal availableBaseAmount = pantryInventory.getOrDefault(ri.getIngredient().getId(), BigDecimal.ZERO);
+                if (availableBaseAmount.compareTo(requiredBaseAmount) < 0) {
+                    canCook = false;
+                    break;
+                }
+            }
+
+            if (canCook) {
+                cookableRecipes.add(mapToDTO(recipe));
+            }
+        }
+
+        return cookableRecipes;
+    }
+
+    @Transactional
     public RecipeDTO createRecipe(RecipeDTO recipeDTO) {
         if (recipeDTO == null){
             throw new IllegalArgumentException("RecipeDTO is null.");
@@ -72,6 +126,7 @@ public class RecipeService {
                 .instructions(recipeDTO.instructions())
                 .imageUrl(recipeDTO.image())
                 .build();
+
         if (recipeDTO.ingredients() != null) {
             for (RecipeIngredientDTO riDTO : recipeDTO.ingredients()) {
                 Ingredient ingredient;
@@ -83,7 +138,7 @@ public class RecipeService {
                             .orElseGet(() -> {
                                 Ingredient newIng = Ingredient.builder()
                                         .name(riDTO.ingredientName())
-                                        .category("todo")
+                                        .category(riDTO.category() != null ? riDTO.category() : "Altro")
                                         .build();
                                 return ingredientRepository.save(newIng);
                             });
@@ -102,13 +157,16 @@ public class RecipeService {
         return mapToDTO(savedRecipe);
     }
 
+    @Transactional
     public RecipeDTO updateRecipe(Long id, RecipeDTO recipeDTO) {
         Recipe existingRecipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ricetta non trovata: " + id));
+
         existingRecipe.setTitle(recipeDTO.title());
         existingRecipe.setDescription(recipeDTO.description());
         existingRecipe.setInstructions(recipeDTO.instructions());
         existingRecipe.setImageUrl(recipeDTO.image());
+
         List<RecipeIngredient> daRimuovere = new ArrayList<>();
         for (RecipeIngredient ri : existingRecipe.getIngredients()) {
             boolean trovato = false;
@@ -127,6 +185,7 @@ public class RecipeService {
             }
         }
         existingRecipe.getIngredients().removeAll(daRimuovere);
+
         if (recipeDTO.ingredients() != null) {
             for (RecipeIngredientDTO riDTO : recipeDTO.ingredients()) {
                 Ingredient ingredient;
@@ -138,7 +197,7 @@ public class RecipeService {
                             .orElseGet(() -> {
                                 Ingredient newIng = Ingredient.builder()
                                         .name(riDTO.ingredientName())
-                                        .category("todo")
+                                        .category(riDTO.category() != null ? riDTO.category() : "Altro")
                                         .build();
                                 return ingredientRepository.save(newIng);
                             });
@@ -149,7 +208,6 @@ public class RecipeService {
                                 && java.util.Objects.equals(ri.getSection(), riDTO.section()))
                         .findFirst()
                         .orElse(null);
-
                 if (esistente != null) {
                     esistente.setAmount(riDTO.amount());
                     esistente.setUnit(riDTO.unit());
@@ -161,7 +219,6 @@ public class RecipeService {
                             .unit(riDTO.unit())
                             .section(riDTO.section())
                             .build();
-
                     existingRecipe.getIngredients().add(nuovoRecipeIngredient);
                 }
             }

@@ -1,0 +1,235 @@
+import { type ReactElement, useState } from "react";
+import type { Recipe, DraftIngredient } from "@/model/data-model.ts";
+import Button from "@/components/ui/Button.tsx";
+import InputText from "@/components/ui/InputText.tsx";
+import Textarea from "@/components/ui/TextArea.tsx";
+import Select from "@/components/ui/Select.tsx";
+import { FiCheck, FiPlus, FiTrash2, FiTag } from "react-icons/fi";
+import { cn } from "@/lib/utils.ts";
+import { useToast } from "@/hooks/useToast.ts";
+import {SHOPPING_SECTION_GROUPS, UNIT_GROUPS} from "@/model/constants.ts";
+
+interface RecipeFormProps {
+    initialRecipe?: Recipe | null;
+    allKnownIngredients: string[];
+    isLoading: boolean;
+    onSave: (recipeData: Recipe, isEdit: boolean) => Promise<void>;
+    onCancel: () => void;
+}
+
+export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoading, onSave, onCancel }: RecipeFormProps): ReactElement {
+    const { addToast } = useToast();
+    const [title, setTitle] = useState(initialRecipe?.title || "");
+    const [image, setImage] = useState(initialRecipe?.image || "");
+    const [description, setDescription] = useState(initialRecipe?.description || "");
+    const [instructions, setInstructions] = useState(initialRecipe?.instructions || "");
+    const [draftIngredients, setDraftIngredients] = useState<DraftIngredient[]>(() => {
+        if (initialRecipe && initialRecipe.ingredients && initialRecipe.ingredients.length > 0) {
+            return initialRecipe.ingredients.map(ing => ({
+                ingredientId: ing.ingredientId,
+                ingredientName: ing.ingredientName,
+                amount: ing.amount,
+                unit: ing.unit,
+                section: ing.section || ""
+            }));
+        }
+        return [{ ingredientName: "", amount: 0, unit: "", section: "" }];
+    });
+    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number | null>(null);
+
+    const updateIngredientRow = (index: number, field: keyof DraftIngredient, value: string | number) => {
+        const newIngredients = [...draftIngredients];
+        newIngredients[index] = { ...newIngredients[index], [field]: value };
+        if (field === 'unit' && value === 'qb') {
+            newIngredients[index].amount = 0;
+        }
+        setDraftIngredients(newIngredients);
+    };
+
+    const removeIngredientRow = (index: number) => {
+        setDraftIngredients(draftIngredients.filter((_, i) => i !== index));
+    };
+
+    const addIngredientRow = () => {
+        setDraftIngredients([...draftIngredients, { ingredientName: "", amount: 0, unit: "", section: "" }]);
+    };
+
+    const canAddIngredient = draftIngredients.every(ing =>
+        ing.ingredientName.trim() !== "" &&
+        ing.unit !== "" &&
+        (ing.unit === "qb" || String(ing.amount).trim() !== "")
+    );
+
+    const handleSubmit = () => {
+        if (!title.trim()) {
+            addToast("Il titolo della ricetta è obbligatorio.", "warning");
+            return;
+        }
+
+        const formattedIngredients = draftIngredients.map(ing => ({
+            ingredientId: ing.ingredientId,
+            ingredientName: ing.ingredientName,
+            amount: ing.unit === "qb" ? 0 : Number(ing.amount) || 0,
+            unit: ing.unit,
+            section: ing.section
+        }));
+
+        const recipeData = {
+            id: initialRecipe ? initialRecipe.id : 0,
+            title,
+            description,
+            instructions,
+            image,
+            ingredients: formattedIngredients,
+            isInMealPlan: initialRecipe?.isInMealPlan || false
+        };
+
+        onSave(recipeData as Recipe, !!initialRecipe);
+    };
+
+    return (
+        <div className="flex flex-col gap-6">
+            <div className="border-b border-border/50 pb-4">
+                <h2 className="text-2xl font-bold text-foreground">
+                    {initialRecipe ? "Modifica Ricetta" : "Aggiungi una nuova ricetta"}
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1">Compila i dettagli del piatto e aggiungi gli ingredienti necessari.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-foreground ml-1">Titolo Ricetta</label>
+                    <InputText
+                        placeholder="es. Pasta alla Norma"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                    />
+                </div>
+                <div className="flex flex-col gap-2">
+                    <label className="text-sm font-semibold text-foreground ml-1">URL Immagine</label>
+                    <InputText
+                        placeholder="https://..." type="url"
+                        value={image}
+                        onChange={(e) => setImage(e.target.value)}
+                    />
+                </div>
+                <div className="flex flex-col gap-2 md:col-span-2">
+                    <label className="text-sm font-semibold text-foreground ml-1">Descrizione Breve</label>
+                    <InputText
+                        placeholder="Una breve descrizione del piatto..."
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                    />
+                </div>
+                <div className="flex flex-col gap-2 md:col-span-2">
+                    <label className="text-sm font-semibold text-foreground ml-1">Istruzioni</label>
+                    <Textarea
+                        placeholder="Passo 1: Trita la cipolla...&#10;Passo 2: Soffriggi in padella..."
+                        value={instructions}
+                        onChange={(e) => setInstructions(e.target.value)}
+                    />
+                </div>
+            </div>
+            <div className="p-5 rounded-xl bg-background/30 border border-border/30 mt-2 overflow-visible">
+                <h3 className="text-lg font-bold mb-4 text-primary">Ingredienti</h3>
+                <div className="flex flex-col gap-3 mb-4">
+                    {draftIngredients.map((ing, index) => (
+                        <div key={index} className="flex flex-col md:flex-row gap-3 items-start md:items-center animate-in fade-in duration-200">
+                            <div className="relative w-full md:flex-1">
+                                <InputText
+                                    placeholder="Nome (es. Sale)"
+                                    value={ing.ingredientName}
+                                    onFocus={() => setActiveSuggestionIndex(index)}
+                                    onBlur={() => setTimeout(() => setActiveSuggestionIndex(null), 200)}
+                                    onChange={(e) => updateIngredientRow(index, 'ingredientName', e.target.value)}
+                                    className="w-full"
+                                />
+                                {activeSuggestionIndex === index && ing.ingredientName.length > 0 && (
+                                    <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl">
+                                        {allKnownIngredients
+                                            .filter(name => name.toLowerCase().includes(ing.ingredientName.toLowerCase()) && name.toLowerCase() !== ing.ingredientName.toLowerCase())
+                                            .map(suggestion => (
+                                                <div
+                                                    key={suggestion}
+                                                    className="p-3 flex items-center gap-2 cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors text-sm text-foreground font-medium border-b border-border/50 last:border-0"
+                                                    onClick={() => {
+                                                        updateIngredientRow(index, 'ingredientName', suggestion);
+                                                        setActiveSuggestionIndex(null);
+                                                    }}
+                                                >
+                                                    <FiTag className="text-muted-foreground w-4 h-4 shrink-0" />
+                                                    {suggestion}
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex gap-3 w-full md:w-auto">
+                                <InputText
+                                    type="number"
+                                    placeholder="Qtà"
+                                    value={ing.amount}
+                                    onChange={(e) => updateIngredientRow(index, 'amount', e.target.value)}
+                                    className="w-20"
+                                    disabled={ing.unit === "qb"}
+                                />
+                                <div className="w-40">
+                                    <Select
+                                        groups={UNIT_GROUPS}
+                                        value={ing.unit}
+                                        onChange={(val) => updateIngredientRow(index, 'unit', val)}
+                                        placeholder="Unità..."
+                                    />
+                                </div>
+                                <div className="w-40">
+                                    <Select
+                                        groups={SHOPPING_SECTION_GROUPS}
+                                        value={ing.section}
+                                        onChange={(val) => updateIngredientRow(index, 'section', val)}
+                                        placeholder="Reparto..."
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => removeIngredientRow(index)}
+                                    disabled={draftIngredients.length === 1}
+                                    className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl border border-border/50 text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                                >
+                                    <FiTrash2 className="w-5 h-5" />
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <Button
+                    onClick={addIngredientRow}
+                    disabled={!canAddIngredient}
+                    className={cn(
+                        "h-10 w-full md:w-auto transition-colors",
+                        canAddIngredient ? "bg-primary/20 hover:bg-primary/30" : "bg-muted cursor-not-allowed opacity-50"
+                    )}
+                >
+                    <span className={cn("flex items-center justify-center gap-2 text-base font-bold", canAddIngredient ? "text-foreground" : "text-muted-foreground")}>
+                        <FiPlus className="w-4 h-4" /> Aggiungi Ingrediente
+                    </span>
+                </Button>
+            </div>
+            <div className="flex justify-end gap-4 mt-4 pt-4 border-t border-border/50">
+                <Button onClick={onCancel} className="bg-transparent border border-border hover:bg-background/50 h-11">
+                    <span className="text-base font-bold text-foreground">Annulla</span>
+                </Button>
+                <Button
+                    onClick={handleSubmit}
+                    disabled={isLoading}
+                    className={cn(
+                        "h-11 px-8 transition-all",
+                        isLoading ? "bg-muted cursor-wait" : "bg-primary hover:bg-primary/90"
+                    )}
+                >
+                    <span className="flex items-center justify-center gap-2 text-base font-bold text-foreground">
+                        {isLoading ? "Salvataggio..." : <><FiCheck className="w-5 h-5" /> Salva Ricetta</>}
+                    </span>
+                </Button>
+            </div>
+        </div>
+    );
+}

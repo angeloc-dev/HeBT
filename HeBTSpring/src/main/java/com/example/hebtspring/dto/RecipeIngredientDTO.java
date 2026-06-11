@@ -7,5 +7,6 @@ public record RecipeIngredientDTO(
         String ingredientName,
         BigDecimal amount,
         String unit,
-        String section
+        String section,
+        String category
 ) {}
