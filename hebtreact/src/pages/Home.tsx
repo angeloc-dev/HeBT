@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import Button from "../components/ui/Button";
+import CustomButton from "../components/ui/CustomButton";
 import { FiBook, FiPackage, FiSearch, FiCalendar } from "react-icons/fi";
 import { Swiper as SwiperCarousel, SwiperSlide } from "swiper/react";
 import "swiper/css";
@@ -11,12 +11,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Container from "@/components/ui/Container.tsx";
 import { recipeService } from "@/services/recipeService.ts";
 import { mealPlannerService } from "@/services/mealPlannerService.ts";
-import { useToast } from "@/hooks/useToast.ts";
 import PlannerCalendar from "@/components/planner/PlannerCalendar.tsx";
+import {toast} from "sonner";
 
 export default function Home() {
     const navigate = useNavigate();
-    const { addToast } = useToast();
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -34,11 +33,11 @@ export default function Home() {
             setRecipes(recipesData);
             setMealPlans(mealPlansData);
         } catch (err) {
-            addToast(err instanceof Error ? err.message : "Errore nel caricamento della dashboard", 'error');
+            toast.error(err instanceof Error ? err.message : "Errore nel caricamento della dashboard");
         } finally {
             setIsLoading(false);
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -65,9 +64,9 @@ export default function Home() {
             <Container>
                 <div className="flex items-center justify-between mb-6 border-b border-border/50 pb-2">
                     <h2 className="text-2xl font-bold text-foreground">I Tuoi Prossimi Pasti</h2>
-                    <Button variant="ghost" onClick={() => navigate("/planner")} className="text-primary hover:bg-primary/10">
+                    <CustomButton variant="ghost" onClick={() => navigate("/planner")} className="text-primary hover:bg-primary/10">
                         Gestisci Planner
-                    </Button>
+                    </CustomButton>
                 </div>
                 {isLoading ? (
                     <div className="animate-pulse h-96 bg-secondary/20 rounded-2xl w-full"></div>
@@ -178,30 +177,30 @@ export default function Home() {
                 </SwiperCarousel>
             </Container>
             <section className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mx-auto w-full max-w-4xl mt-4 mb-8">
-                <Button
+                <CustomButton
                     className="w-[80%] md:w-64 h-14 shadow-lg shadow-primary/20"
                     onClick={() => navigate("/recipes")}
                 >
                     <span className="flex items-center gap-2 text-lg font-bold text-foreground">
                         <FiBook className="w-5 h-5" /> Ricettario
                     </span>
-                </Button>
-                <Button
+                </CustomButton>
+                <CustomButton
                     className="w-[80%] md:w-64 h-14 shadow-lg shadow-primary/20"
                     onClick={() => navigate("/planner")}
                 >
                     <span className="flex items-center gap-2 text-lg font-bold text-foreground">
                         <FiCalendar className="w-5 h-5" /> Planner
                     </span>
-                </Button>
-                <Button
+                </CustomButton>
+                <CustomButton
                     className="w-[80%] md:w-64 h-14 shadow-lg shadow-primary/20"
                     onClick={() => navigate("/pantry")}
                 >
                     <span className="flex items-center gap-2 text-lg font-bold text-foreground">
                         <FiPackage className="w-5 h-5" /> Dispensa
                     </span>
-                </Button>
+                </CustomButton>
             </section>
         </div>
     );

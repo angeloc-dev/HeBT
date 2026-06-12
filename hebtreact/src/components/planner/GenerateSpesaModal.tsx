@@ -1,12 +1,12 @@
 import { type ReactElement, useState, useMemo, useCallback, useEffect } from "react";
 import { FiX, FiShoppingCart, FiCheckSquare, FiSquare, FiCalendar } from "react-icons/fi";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import InputText from "@/components/ui/InputText.tsx";
 import { cn } from "@/lib/utils.ts";
-import { useToast } from "@/hooks/useToast.ts";
 import type { MealPlan } from "@/model/data-model.ts";
 import { shoppingListService } from "@/services/shoppingListService.ts";
 import {formatDateForInput} from "@/model/constants.ts";
+import {toast} from "sonner";
 
 interface GenerateSpesaModalProps {
     mealPlans: MealPlan[];
@@ -16,7 +16,6 @@ interface GenerateSpesaModalProps {
 
 
 export default function GenerateSpesaModal({ mealPlans, onClose, onSuccess }: GenerateSpesaModalProps): ReactElement | null {
-    const { addToast } = useToast();
     const [startDate, setStartDate] = useState<string>(() => formatDateForInput(new Date()));
     const [endDate, setEndDate] = useState<string>(() => {
         const d = new Date();
@@ -75,22 +74,25 @@ export default function GenerateSpesaModal({ mealPlans, onClose, onSuccess }: Ge
 
     const handleGenerate = useCallback(async () => {
         if (selectedIds.size === 0) {
-            addToast("Seleziona almeno un pasto per generare la spesa.", "warning");
+            toast.warning("Seleziona almeno un pasto per generare la spesa.");
             return;
         }
         setIsGenerating(true);
-        try {
-            const idsArray = Array.from(selectedIds);
-            await shoppingListService.generateShoppingList(idsArray);
-            addToast("Lista della spesa generata con successo!", "success");
-            onSuccess();
-        } catch (error) {
-            console.error("Errore generazione spesa:", error);
-            addToast("Si è verificato un errore durante la generazione della spesa.", "error");
-        } finally {
-            setIsGenerating(false);
-        }
-    }, [selectedIds, onSuccess, addToast]);
+        const savePromise = async () => {
+            try {
+                const idsArray = Array.from(selectedIds);
+                await shoppingListService.generateShoppingList(idsArray);
+                onSuccess();
+            } finally {
+                setIsGenerating(false);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Aggiunta della lista della spesa in corso...",
+            success: "Lista della spesa generata con successo!",
+            error: "Si è verificato un errore durante la generazione della spesa."
+        });
+    }, [selectedIds, onSuccess]);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -194,16 +196,16 @@ export default function GenerateSpesaModal({ mealPlans, onClose, onSuccess }: Ge
                     )}
                 </div>
                 <div className="flex justify-end gap-3 p-6 border-t border-border/50 shrink-0 bg-background/50 rounded-b-2xl">
-                    <Button variant="ghost" onClick={onClose} disabled={isGenerating}>
+                    <CustomButton variant="ghost" onClick={onClose} disabled={isGenerating}>
                         Annulla
-                    </Button>
-                    <Button
+                    </CustomButton>
+                    <CustomButton
                         onClick={handleGenerate}
                         disabled={isGenerating || selectedIds.size === 0}
                         className="bg-emerald-500 hover:bg-emerald-600 text-white border-none min-w-[160px]"
                     >
                         {isGenerating ? "Generazione..." : "Genera Spesa"}
-                    </Button>
+                    </CustomButton>
                 </div>
             </div>
         </div>

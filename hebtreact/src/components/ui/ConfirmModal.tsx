@@ -1,6 +1,6 @@
 import { type ReactElement, useEffect } from "react";
 import { createPortal } from "react-dom";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "./CustomButton.tsx";
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -43,15 +43,15 @@ export default function ConfirmModal({
                     <p className="text-muted-foreground text-sm mt-2">{message}</p>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
-                    <Button onClick={onCancel} className="bg-transparent border border-border text-foreground hover:bg-background/50">
+                    <CustomButton onClick={onCancel} className="bg-transparent border border-border text-foreground hover:bg-background/50">
                         {cancelText}
-                    </Button>
-                    <Button
+                    </CustomButton>
+                    <CustomButton
                         onClick={onConfirm}
                         className={isDestructive ? "bg-destructive hover:bg-destructive/90 text-white border-transparent" : "bg-primary hover:bg-primary/90 text-primary-foreground border-transparent"}
                     >
                         {confirmText}
-                    </Button>
+                    </CustomButton>
                 </div>
             </div>
         </div>,

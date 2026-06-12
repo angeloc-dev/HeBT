@@ -1,11 +1,10 @@
 import { type ReactElement, useState, useCallback, useEffect } from "react";
-import { useToast } from "@/hooks/useToast.ts";
 import { pantryService } from "@/services/pantryService.ts";
 import { recipeService } from "@/services/recipeService.ts";
 import type { PantryItem, Recipe } from "@/model/data-model.ts";
 import Container from "@/components/ui/Container.tsx";
 import PageHeader from "@/components/PageHeader.tsx";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../components/ui/CustomButton.tsx";
 import { FiPlus } from "react-icons/fi";
 import {mealPlannerService} from "@/services/mealPlannerService.ts";
 import CookingMode from "@/components/pantry/CookingMode.tsx";
@@ -14,7 +13,6 @@ import PantryFormModal from "@/components/pantry/PantryFormModal.tsx";
 import SuggestedRecipes from "@/components/pantry/SuggestedRecipe.tsx";
 
 export default function Pantry(): ReactElement {
-    const { addToast } = useToast();
     const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -31,7 +29,7 @@ export default function Pantry(): ReactElement {
             setPantryItems(pantryData);
             setRecipes(recipesData);
         } catch (error) {
-            addToast(`Errore nel caricamento dei dati: ${error}`, "error");
+            toast.error(`Errore nel caricamento dei dati: ${error}`);
         } finally {
             setIsLoading(false);
         }
@@ -77,14 +75,14 @@ export default function Pantry(): ReactElement {
                 title="La Tua Dispensa"
                 description="Gestisci gli ingredienti a casa, monitora le scadenze e scopri cosa cucinare oggi."
                 action={
-                    <Button
+                    <CustomButton
                         onClick={() => setIsAddModalOpen(true)}
                         className="w-full md:w-auto h-12 px-6 bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 border-none transition-all hover:scale-105"
                     >
                         <span className="flex items-center justify-center gap-2 text-base font-bold">
                             <FiPlus className="w-5 h-5" /> Aggiungi Ingrediente
                         </span>
-                    </Button>
+                    </CustomButton>
                 }
             />
             <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 items-start">

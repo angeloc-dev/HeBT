@@ -1,7 +1,7 @@
 import { type ReactElement, useMemo } from "react";
 import { FiPlayCircle } from "react-icons/fi";
 import type { Recipe, PantryItem } from "@/model/data-model.ts";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import {PiChefHat} from "react-icons/pi";
 
 interface SuggestedRecipesProps {
@@ -59,14 +59,14 @@ export default function SuggestedRecipes({ recipes, pantryItems, isLoading, onCo
                                 <h4 className="text-base font-bold text-foreground leading-tight line-clamp-2">
                                     {recipe.title}
                                 </h4>
-                                <Button
+                                <CustomButton
                                     onClick={() => onCook(recipe)}
                                     className="w-full sm:w-fit h-9 px-4 bg-emerald-500 hover:bg-emerald-600 text-white border-none mt-auto"
                                 >
                                     <span className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider">
                                         <FiPlayCircle className="w-4 h-4 shrink-0" /> Cucina Ora
                                     </span>
-                                </Button>
+                                </CustomButton>
                             </div>
                         </div>
                     ))}

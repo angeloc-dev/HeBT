@@ -1,14 +1,14 @@
 import { type ReactElement, useState, useEffect, useCallback, useRef } from "react";
 import { FiX, FiPlus, FiSearch } from "react-icons/fi";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import InputText from "@/components/ui/InputText.tsx";
 import Select from "@/components/ui/Select.tsx";
 import { cn } from "@/lib/utils.ts";
-import { useToast } from "@/hooks/useToast.ts";
 import type { Ingredient } from "@/model/data-model.ts";
 import { ingredientService } from "@/services/ingredientService.ts";
 import { shoppingListService } from "@/services/shoppingListService.ts";
 import { UNIT_GROUPS, SHOPPING_SECTION_GROUPS } from "@/model/constants.ts";
+import {toast} from "sonner";
 
 interface AddManualItemModalProps {
     isOpen: boolean;
@@ -17,7 +17,6 @@ interface AddManualItemModalProps {
 }
 
 export default function AddManualItemModal({ isOpen, onClose, onSuccess }: AddManualItemModalProps): ReactElement | null {
-    const { addToast } = useToast();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [nameQuery, setNameQuery] = useState<string>("");
     const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
@@ -51,7 +50,7 @@ export default function AddManualItemModal({ isOpen, onClose, onSuccess }: AddMa
                 setSuggestions(results);
                 setShowSuggestions(true);
             } catch (error) {
-                addToast(`Errore nella ricerca ingredienti: ${error}`, "error");
+                toast.error(`Errore nella ricerca ingredienti: ${error}`);
             } finally {
                 setIsSearching(false);
             }
@@ -79,32 +78,36 @@ export default function AddManualItemModal({ isOpen, onClose, onSuccess }: AddMa
         setShowSuggestions(false);
     };
 
-    const handleSave = useCallback(async () => {
+    const handleSave = useCallback(() => {
         if (!nameQuery.trim()) {
-            addToast("Inserisci il nome dell'articolo.", "warning");
+            toast.warning("Inserisci il nome dell'articolo.");
             return;
         }
         if (amount <= 0) {
-            addToast("La quantità deve essere maggiore di zero.", "warning");
+            toast.warning("La quantità deve essere maggiore di zero.");
             return;
         }
         setIsSaving(true);
-        try {
-            await shoppingListService.addManualItem({
-                ingredientId: selectedIngredient?.id || 0,
-                ingredientName: nameQuery.trim(),
-                category: category,
-                amount: amount,
-                unit: unit
-            });
-            addToast("Articolo aggiunto alla lista!", "success");
-            onSuccess();
-        } catch (error) {
-            addToast(`Si è verificato un errore durante il salvataggio: ${error}`, "error");
-        } finally {
-            setIsSaving(false);
-        }
-    }, [nameQuery, amount, unit, category, selectedIngredient, onSuccess, addToast]);
+        const savePromise = async () => {
+            try {
+                await shoppingListService.addManualItem({
+                    ingredientId: selectedIngredient?.id || 0,
+                    ingredientName: nameQuery.trim(),
+                    category: category,
+                    amount: amount,
+                    unit: unit
+                });
+                onSuccess();
+            } finally {
+                setIsSaving(false);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Aggiunta dell'articolo in corso...",
+            success: "Articolo aggiunto alla lista!",
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`,
+        });
+    }, [nameQuery, amount, unit, category, selectedIngredient, onSuccess]);
 
     if (!isOpen) return null;
 
@@ -191,12 +194,12 @@ export default function AddManualItemModal({ isOpen, onClose, onSuccess }: AddMa
                     </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
-                    <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+                    <CustomButton variant="ghost" onClick={onClose} disabled={isSaving}>
                         Annulla
-                    </Button>
-                    <Button onClick={handleSave} disabled={isSaving || !nameQuery.trim()} className="bg-emerald-500 hover:bg-emerald-600 text-white border-none">
+                    </CustomButton>
+                    <CustomButton onClick={handleSave} disabled={isSaving || !nameQuery.trim()} className="bg-emerald-500 hover:bg-emerald-600 text-white border-none">
                         {isSaving ? "Salvataggio..." : "Aggiungi"}
-                    </Button>
+                    </CustomButton>
                 </div>
             </div>
         </div>

@@ -1,6 +1,6 @@
 import { type ReactElement, useState, useMemo } from "react";
 import type { Recipe } from "@/model/data-model.ts";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import Select from "@/components/ui/Select.tsx";
 import { FiArrowLeft, FiCheckCircle } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
@@ -95,7 +95,7 @@ export default function CookingMode({ recipe, onExit, onConfirm }: CookingModePr
                 </div>
             </div>
             <div className="mt-8 flex justify-center border-t border-border/50 pt-8">
-                <Button
+                <CustomButton
                     onClick={handleConfirm}
                     disabled={!isReadyToCook || isConfirming}
                     className={cn(
@@ -109,7 +109,7 @@ export default function CookingMode({ recipe, onExit, onConfirm }: CookingModePr
                         <FiCheckCircle className="w-8 h-8" />
                         {isConfirming ? "Svuotamento Dispensa..." : "Conferma Cottura"}
                     </span>
-                </Button>
+                </CustomButton>
             </div>
 
         </div>

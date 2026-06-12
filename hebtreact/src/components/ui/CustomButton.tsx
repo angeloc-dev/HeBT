@@ -14,7 +14,7 @@ const variantStyles: Record<ButtonVariant, string> = {
     destructive: "bg-destructive text-destructive-foreground shadow-md hover:bg-destructive/90",
 };
 
-export default function Button({
+export default function CustomButton({
                                    children,
                                    className,
                                    variant = "secondary",

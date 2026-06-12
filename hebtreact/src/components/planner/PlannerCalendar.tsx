@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, forwardRef, useImperativeHandle} from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import type { MealPlan } from "@/model/data-model.ts";
 import PlannerDayCard from "./PlannerDayCard.tsx";
 import {getStartOfWeek} from "@/model/constants.ts";
@@ -80,16 +80,16 @@ const PlannerCalendar = forwardRef<PlannerCalendarRef, PlannerCalendarProps>(
                         {monthYearString}
                     </h3>
                     <div className="flex items-center gap-2">
-                        <Button variant="outline" onClick={handleToday} className="hidden md:flex h-10">
+                        <CustomButton variant="outline" onClick={handleToday} className="hidden md:flex h-10">
                             Oggi
-                        </Button>
+                        </CustomButton>
                         <div className="flex items-center gap-1 border border-border/50 rounded-lg p-1">
-                            <Button variant="ghost" onClick={handlePrevWeek} className="h-8 w-8 p-0 rounded-md">
+                            <CustomButton variant="ghost" onClick={handlePrevWeek} className="h-8 w-8 p-0 rounded-md">
                                 <FiChevronLeft className="w-5 h-5" />
-                            </Button>
-                            <Button variant="ghost" onClick={handleNextWeek} className="h-8 w-8 p-0 rounded-md">
+                            </CustomButton>
+                            <CustomButton variant="ghost" onClick={handleNextWeek} className="h-8 w-8 p-0 rounded-md">
                                 <FiChevronRight className="w-5 h-5" />
-                            </Button>
+                            </CustomButton>
                         </div>
                     </div>
                 </div>

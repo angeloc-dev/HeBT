@@ -1,6 +1,6 @@
 import { type ReactElement, useState, useEffect, useCallback } from "react";
 import { FiX, FiSave, FiAlertCircle } from "react-icons/fi";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import InputText from "@/components/ui/InputText.tsx";
 import Select from "@/components/ui/Select.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -180,15 +180,15 @@ export default function MealSelectionModal({
                     </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-border/50">
-                    <Button
+                    <CustomButton
                         variant="outline"
                         onClick={onClose}
                         disabled={isSaving}
                         className="h-11 px-6"
                     >
                         Annulla
-                    </Button>
-                    <Button
+                    </CustomButton>
+                    <CustomButton
                         onClick={handleSave}
                         disabled={isSaving || isLoadingRecipes || selectedRecipeId === ""}
                         className="h-11 px-6 bg-primary hover:bg-primary/90 text-foreground transition-all"
@@ -197,7 +197,7 @@ export default function MealSelectionModal({
                             <FiSave className={cn("w-4 h-4", isSaving && "animate-pulse")} />
                             {isSaving ? "Salvataggio..." : "Salva Pasto"}
                         </span>
-                    </Button>
+                    </CustomButton>
                 </div>
             </div>
         </div>

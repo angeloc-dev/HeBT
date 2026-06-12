@@ -5,7 +5,7 @@ import { pantryService } from "@/services/pantryService.ts";
 import { useToast } from "@/hooks/useToast.ts";
 import InputText from "@/components/ui/InputText.tsx";
 import Select from "@/components/ui/Select.tsx";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import { UNIT_GROUPS, SHOPPING_SECTION_GROUPS } from "@/model/constants.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -149,10 +149,10 @@ export default function PantryFormModal({ isOpen, existingItem, onClose, onSucce
                     </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-3 border-t border-border/50">
-                    <Button variant="ghost" onClick={onClose} className="h-11 px-5">
+                    <CustomButton variant="ghost" onClick={onClose} className="h-11 px-5">
                         Annulla
-                    </Button>
-                    <Button
+                    </CustomButton>
+                    <CustomButton
                         onClick={handleSubmit}
                         disabled={!isFormValid || isSaving}
                         className={cn(
@@ -166,7 +166,7 @@ export default function PantryFormModal({ isOpen, existingItem, onClose, onSucce
                             <FiCheck className="w-4 h-4 shrink-0" />
                             {isSaving ? "Salvataggio..." : "Conferma e Salva"}
                         </span>
-                    </Button>
+                    </CustomButton>
                 </div>
             </div>
         </div>

@@ -1,31 +1,33 @@
 import Navbar from "./components/Navbar";
 import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
-import SoftAurora from "./components/SoftAurora.jsx";
 import Home from "./pages/Home";
 import Recipes from "./pages/Recipes";
 import Planner from "./pages/Planner";
 import Pantry from "./pages/Pantry";
+import SoftAurora from "./components/SoftAurora.tsx";
+import {Toaster} from "sonner";
 
 function App() {
     return (
         <Router>
+            <Toaster position="top-right" />
             <div className="relative h-screen bg-background overflow-hidden">
                 <div className="absolute inset-0 z-0 pointer-events-none">
                     <SoftAurora
                         speed={0.4}
-                        scale={0.4}
-                        brightness={0.8}
+                        scale={1.1}
+                        brightness={0.7}
                         color1="#22c55e"
                         color2="#F59E0B"
-                        noiseFrequency={3.5}
-                        noiseAmplitude={2}
+                        noiseFrequency={2}
+                        noiseAmplitude={1}
                         bandHeight={0.5}
-                        bandSpread={0.9}
-                        octaveDecay={0.28}
-                        layerOffset={0.45}
-                        colorSpeed={1.5}
+                        bandSpread={0.8}
+                        octaveDecay={0.08}
+                        layerOffset={0}
+                        colorSpeed={1}
                         enableMouseInteraction={false}
-                        mouseInfluence={0.2}
+                        mouseInfluence={0.25}
                     />
                 </div>
                 <div className="relative z-10 flex flex-col h-screen overflow-y-auto">

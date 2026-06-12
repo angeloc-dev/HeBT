@@ -1,7 +1,7 @@
 import { type ReactElement, useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Recipe, PantryItem } from "@/model/data-model.ts";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import Select from "@/components/ui/Select.tsx";
 import { FiArrowLeft, FiEdit2, FiTrash2, FiUsers, FiPlay, FiAlertCircle } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
@@ -151,7 +151,7 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                                 />
                             </div>
                             <div className="w-full sm:w-auto sm:mt-7">
-                                <Button
+                                <CustomButton
                                     disabled={guests === "" || !canCook || isLoadingPantry}
                                     onClick={() => navigate('/pantry')}
                                     className={cn(
@@ -172,7 +172,7 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                                             <><FiPlay className="w-5 h-5" /> Cucina piatto</>
                                         )}
                                     </span>
-                                </Button>
+                                </CustomButton>
                             </div>
                         </div>
                     </div>

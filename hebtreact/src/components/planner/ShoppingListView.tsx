@@ -1,5 +1,5 @@
 import { type ReactElement, useMemo, useState, useCallback } from "react";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import InputText from "@/components/ui/InputText.tsx";
 import { FiPlus, FiTrash2, FiShoppingCart, FiX, FiClock } from "react-icons/fi";
 import type { ShoppingListItem } from "@/model/data-model.ts";
@@ -95,13 +95,13 @@ export default function ShoppingListView({ shoppingList, onListUpdated, searchQu
                 <p className="text-muted-foreground text-center max-w-sm">
                     Non hai ancora pianificato la spesa o hai acquistato tutto. Vai al Calendario per generarla o aggiungi articoli manualmente.
                 </p>
-                <Button
+                <CustomButton
                     variant="outline"
                     className="mt-2"
                     onClick={() => setIsManualAddOpen(true)}
                 >
                     <FiPlus className="w-4 h-4" /> Aggiunta Manuale
-                </Button>
+                </CustomButton>
                 {isManualAddOpen && (
                     <AddManualItemModal
                         isOpen={isManualAddOpen}
@@ -125,7 +125,7 @@ export default function ShoppingListView({ shoppingList, onListUpdated, searchQu
                     </span>
                 </h2>
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    <Button
+                    <CustomButton
                         variant="destructive"
                         onClick={handleClearListClick}
                         disabled={isClearing}
@@ -133,14 +133,14 @@ export default function ShoppingListView({ shoppingList, onListUpdated, searchQu
                     >
                         <FiTrash2 className="w-4 h-4" />
                         {isClearing ? "Svuotamento..." : "Svuota Lista"}
-                    </Button>
-                    <Button
+                    </CustomButton>
+                    <CustomButton
                         variant="secondary"
                         className="flex-1 md:flex-none text-foreground"
                         onClick={() => setIsManualAddOpen(true)}
                     >
                         <FiPlus className="w-4 h-4" /> Manuale
-                    </Button>
+                    </CustomButton>
                 </div>
             </div>
             <div className="flex flex-col bg-background/50 border border-border/50 p-4 md:p-6 rounded-2xl shadow-sm">
@@ -202,16 +202,16 @@ export default function ShoppingListView({ shoppingList, onListUpdated, searchQu
                             </span>
                         </div>
                         <div className="flex justify-end gap-3 pt-2">
-                            <Button variant="ghost" onClick={() => setItemToPurchase(null)}>
+                            <CustomButton variant="ghost" onClick={() => setItemToPurchase(null)}>
                                 Annulla
-                            </Button>
-                            <Button
+                            </CustomButton>
+                            <CustomButton
                                 onClick={handleConfirmPurchase}
                                 disabled={isPurchasing}
                                 className="bg-emerald-500 hover:bg-emerald-600 text-white border-none"
                             >
                                 {isPurchasing ? "Salvataggio..." : "Conferma e Spunta"}
-                            </Button>
+                            </CustomButton>
                         </div>
                     </div>
                 </div>

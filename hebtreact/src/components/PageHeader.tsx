@@ -1,7 +1,7 @@
 import { type ReactElement, type ReactNode } from "react";
 import Container from "@/components/ui/Container.tsx";
 import InputText from "@/components/ui/InputText.tsx";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "./ui/CustomButton.tsx";
 import { FiSearch } from "react-icons/fi";
 
 interface PageHeaderProps {
@@ -84,7 +84,7 @@ export default function PageHeader({
                         action
                     ) : (
                         buttonText && onButtonClick && (
-                            <Button
+                            <CustomButton
                                 onClick={onButtonClick}
                                 className={`w-full md:w-auto text-foreground ${buttonClassName || ""}`}
                             >
@@ -92,7 +92,7 @@ export default function PageHeader({
                                     {buttonIcon}
                                     {buttonText}
                                 </span>
-                            </Button>
+                            </CustomButton>
                         )
                     )}
                 </div>

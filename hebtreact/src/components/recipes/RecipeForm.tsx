@@ -1,6 +1,6 @@
 import { type ReactElement, useState, useMemo } from "react";
 import type { Recipe, DraftIngredient } from "@/model/data-model.ts";
-import Button from "@/components/ui/Button.tsx";
+import CustomButton from "../ui/CustomButton.tsx";
 import InputText from "@/components/ui/InputText.tsx";
 import Textarea from "@/components/ui/TextArea.tsx";
 import Select from "@/components/ui/Select.tsx";
@@ -224,20 +224,20 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                         </div>
                     ))}
                 </div>
-                <Button
+                <CustomButton
                     onClick={addIngredientRow}
                     className="h-10 w-full md:w-auto transition-colors bg-secondary/30 hover:bg-secondary/50 text-foreground"
                 >
                     <span className="flex items-center justify-center gap-2 text-base font-bold">
                         <FiPlus className="w-4 h-4" /> Aggiungi Ingrediente
                     </span>
-                </Button>
+                </CustomButton>
             </div>
             <div className="flex justify-end gap-4 mt-4 pt-4 border-t border-border/50">
-                <Button onClick={onCancel} className="bg-transparent border border-border hover:bg-background/50 h-11">
+                <CustomButton onClick={onCancel} className="bg-transparent border border-border hover:bg-background/50 h-11">
                     <span className="text-base font-bold text-foreground">Annulla</span>
-                </Button>
-                <Button
+                </CustomButton>
+                <CustomButton
                     onClick={handleSubmit}
                     disabled={isLoading || !isFormValid}
                     className={cn(
@@ -248,7 +248,7 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                     <span className="flex items-center justify-center gap-2 text-base font-bold text-white">
                         {isLoading ? "Salvataggio..." : <><FiCheck className="w-5 h-5" /> Salva Ricetta</>}
                     </span>
-                </Button>
+                </CustomButton>
             </div>
         </div>
     );
