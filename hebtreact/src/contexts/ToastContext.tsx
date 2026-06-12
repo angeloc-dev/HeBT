@@ -28,9 +28,9 @@ export function ToastProvider({ children }: { children: ReactNode }): ReactEleme
                         key={toast.id}
                         className={cn(
                             "pointer-events-auto flex items-center justify-between gap-3 p-4 rounded-xl border shadow-xl backdrop-blur-lg animate-in slide-in-from-right-full fade-in duration-300",
-                            toast.type === "success" && "bg-green-500/15 border-green-500/40 text-green-500",
-                            toast.type === "error" && "bg-destructive/15 border-destructive/40 text-destructive",
-                            toast.type === "warning" && "bg-amber-500/15 border-amber-500/40 text-amber-500"
+                            toast.type === "success" && "bg-green-500/25 border-green-500/60 text-green-500",
+                            toast.type === "error" && "bg-destructive/25 border-destructive/60 text-destructive",
+                            toast.type === "warning" && "bg-amber-500/25 border-amber-500/60 text-amber-500"
                         )}
                     >
                         <div className="flex items-center gap-3">

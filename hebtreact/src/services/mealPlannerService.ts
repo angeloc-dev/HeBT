@@ -34,9 +34,9 @@ export const mealPlannerService = {
             throw error;
         }
     },
-    async confirmMealCooked(id: number): Promise<void> {
+    async confirmMealCooked(id: number, guests: number): Promise<void> {
         try {
-            await axios.post(`${API_BASE_URL}/meal-plans/${id}/cook`);
+            await axios.post(`${API_BASE_URL}/meal-plans/${id}/cook`, { guests });
         } catch (error) {
             console.error("Errore nel confermare la cottura di un piatto:", error);
             throw error;

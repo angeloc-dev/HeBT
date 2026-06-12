@@ -1,110 +1,87 @@
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
-import {FiBook, FiPackage, FiSearch, FiShoppingCart} from "react-icons/fi";
-import {Swiper as SwiperCarousel, SwiperSlide} from "swiper/react";
+import { FiBook, FiPackage, FiSearch, FiCalendar } from "react-icons/fi";
+import { Swiper as SwiperCarousel, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/free-mode";
 import CardRecipe from "@/components/CardRecipe.tsx";
-import type {Recipe} from "@/model/data-model.ts";
-import {FreeMode, Mousewheel} from "swiper/modules";
-import {useCallback, useEffect, useMemo, useState} from "react";
+import type { Recipe, MealPlan } from "@/model/data-model.ts";
+import { FreeMode, Mousewheel } from "swiper/modules";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Container from "@/components/ui/Container.tsx";
-import {recipeService} from "@/services/recipeService.ts";
-import {useToast} from "@/hooks/useToast.ts";
+import { recipeService } from "@/services/recipeService.ts";
+import { mealPlannerService } from "@/services/mealPlannerService.ts";
+import { useToast } from "@/hooks/useToast.ts";
+import PlannerCalendar from "@/components/planner/PlannerCalendar.tsx";
 
 export default function Home() {
     const navigate = useNavigate();
     const { addToast } = useToast();
     const [recipes, setRecipes] = useState<Recipe[]>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [mealPlans, setMealPlans] = useState<MealPlan[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    const fetchRecipes = useCallback(async () => {
+    const fetchDashboardData = useCallback(async () => {
+        setIsLoading(true);
         try {
-            setIsLoading(true);
-            const data = await recipeService.getAllRecipes();
-            setRecipes(data);
+            const today = new Date();
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            const [recipesData, mealPlansData] = await Promise.all([
+                recipeService.getAllRecipes(),
+                mealPlannerService.getAllMealPlannerBetweenDates(startOfMonth, endOfMonth)
+            ]);
+            setRecipes(recipesData);
+            setMealPlans(mealPlansData);
         } catch (err) {
-            addToast(err instanceof Error ? err.message : "Errore sconosciuto", 'error');
+            addToast(err instanceof Error ? err.message : "Errore nel caricamento della dashboard", 'error');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [addToast]);
 
     useEffect(() => {
         const loadInitialData = async () => {
-            await fetchRecipes();
+            await fetchDashboardData();
         };
 
         loadInitialData();
-    }, [fetchRecipes]);
+    }, [fetchDashboardData]);
 
+    const todaysRecipes = useMemo(() => {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const todaysMeals = mealPlans.filter(m => m.plannedDate === todayStr);
+        const matchedRecipes = todaysMeals
+            .map(meal => recipes.find(r => r.title === meal.recipeTitle))
+            .filter(Boolean) as Recipe[];
+        const uniqueRecipes = Array.from(new Set(matchedRecipes.map(r => r.id)))
+            .map(id => matchedRecipes.find(r => r.id === id)!);
 
-
-    // @todo agganciare al server
-    const calendarDays = useMemo(() => {
-        const days = [];
-        const today = new Date();
-
-        for (let i = 0; i < 14; i++) {
-            const date = new Date(today);
-            date.setDate(today.getDate() + i);
-
-            // Popoliamo alcuni giorni con ricette finte per testare la grafica
-            let meals: { id: number, name: string }[] = [];
-            if (i === 0) meals = [{ id: 101, name: "Pasta alla Milanese (Siciliana)" }, { id: 102, name: "Caponata di Melanzane" }];
-            if (i === 1) meals = [{ id: 103, name: "Spaghetti alle Vongole" }];
-            // Testiamo un giorno molto pieno per vedere se la cella si allunga correttamente
-            if (i === 3) meals = [
-                { id: 104, name: "Uova e Bacon" }, { id: 105, name: "Spuntino Proteico" },
-                { id: 106, name: "Risotto Zafferano" }, { id: 107, name: "Frutta" }, { id: 108, name: "Bistecca ai ferri" }
-            ];
-
-            days.push({
-                date,
-                isToday: i === 0,
-                meals
-            });
-        }
-        return days;
-    }, []);
+        return uniqueRecipes;
+    }, [mealPlans, recipes]);
 
     return (
         <div className="flex flex-col gap-10 py-6 max-w-7xl mx-auto px-4">
             <Container>
-                <h2 className="text-2xl font-bold mb-6 text-foreground">I Tuoi Prossimi Pasti</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-3 md:gap-4">
-                    {calendarDays.map((day, idx) => (
-                        <div
-                            key={idx}
-                            className={`flex flex-col min-h-32.5 p-3 rounded-[10px] border transition-colors duration-300 cursor-default
-                                ${day.isToday
-                                ? 'border-primary/60 bg-primary/10'
-                                : 'border-border/40 bg-card hover:border-border/80'
-                            }
-                            `}
-                        >
-                            <div className={`text-xs font-bold mb-3 uppercase tracking-wider ${day.isToday ? 'text-primary' : 'text-muted-foreground'}`}>
-                                {day.date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' })}
-                            </div>
-
-                            <div className="flex flex-col gap-1.5 flex-1">
-                                {day.meals.map(meal => (
-                                    <button
-                                        key={meal.id}
-                                        onClick={() => navigate('/recipes')}
-                                        className="text-left text-[11px] sm:text-xs font-medium px-2 py-1.5 rounded-md bg-background/50 text-foreground border border-transparent hover:border-secondary/50 hover:bg-secondary/15 hover:text-secondary transition-all duration-200 text-wrap w-full cursor-pointer"
-                                        title={meal.name}
-                                    >
-                                        {meal.name}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    ))}
+                <div className="flex items-center justify-between mb-6 border-b border-border/50 pb-2">
+                    <h2 className="text-2xl font-bold text-foreground">I Tuoi Prossimi Pasti</h2>
+                    <Button variant="ghost" onClick={() => navigate("/planner")} className="text-primary hover:bg-primary/10">
+                        Gestisci Planner
+                    </Button>
                 </div>
+                {isLoading ? (
+                    <div className="animate-pulse h-96 bg-secondary/20 rounded-2xl w-full"></div>
+                ) : (
+                    <PlannerCalendar
+                        mealPlans={mealPlans}
+                        readOnly={true}
+                    />
+                )}
             </Container>
             <Container className="overflow-hidden">
-                <h2 className="text-2xl font-bold mb-6 text-foreground">Ispirazione dalla Cucina</h2>
+                <h2 className="text-2xl font-bold mb-6 text-foreground border-b border-border/50 pb-2">
+                    Ispirazione dalla Cucina
+                </h2>
                 <SwiperCarousel
                     modules={[FreeMode, Mousewheel]}
                     mousewheel={{ forceToAxis: true }}
@@ -120,7 +97,7 @@ export default function Home() {
                 >
                     {isLoading ? (
                         Array.from({ length: 5 }).map((_, index) => (
-                            <SwiperSlide key={`skeleton-${index}`} className="h-auto">
+                            <SwiperSlide key={`skeleton-insp-${index}`} className="h-auto">
                                 <div className="relative h-64 w-full rounded-2xl bg-border/30 animate-pulse" />
                             </SwiperSlide>
                         ))
@@ -148,34 +125,81 @@ export default function Home() {
                     )}
                 </SwiperCarousel>
             </Container>
-            <section className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mx-auto w-full max-w-4xl mt-4">
+            <Container className="overflow-hidden">
+                <h2 className="text-2xl font-bold mb-6 text-foreground border-b border-border/50 pb-2">
+                    Oggi in Tavola
+                </h2>
+                <SwiperCarousel
+                    modules={[FreeMode, Mousewheel]}
+                    mousewheel={{ forceToAxis: true }}
+                    freeMode={true}
+                    spaceBetween={16}
+                    slidesPerView={1.2}
+                    breakpoints={{
+                        640: { slidesPerView: 2.2 },
+                        1024: { slidesPerView: 3.5 },
+                        1280: { slidesPerView: 4.5 }
+                    }}
+                    className="w-full pb-4"
+                >
+                    {isLoading ? (
+                        Array.from({ length: 3 }).map((_, index) => (
+                            <SwiperSlide key={`skeleton-today-${index}`} className="h-auto">
+                                <div className="relative h-64 w-full rounded-2xl bg-primary/10 animate-pulse border border-primary/20" />
+                            </SwiperSlide>
+                        ))
+                    ) : todaysRecipes.length > 0 ? (
+                        todaysRecipes.map((recipe) => (
+                            <SwiperSlide key={`today-${recipe.id}`}
+                                         className="h-auto cursor-pointer"
+                                         onClick={() => navigate(`/recipes/${recipe.id}`)}
+                            >
+                                <div className="relative rounded-2xl ring-2 ring-primary/50 shadow-[0_0_15px_rgba(16,185,129,0.15)] h-full overflow-hidden">
+                                    <div className="absolute top-2 left-2 z-10 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md shadow-md">
+                                        Previsto per Oggi
+                                    </div>
+                                    <CardRecipe recipe={recipe} />
+                                </div>
+                            </SwiperSlide>
+                        ))
+                    ) : (
+                        <SwiperSlide className="w-full h-auto">
+                            <div className="flex flex-col items-center justify-center w-full h-64 bg-primary/5 border border-dashed border-primary/30 rounded-2xl p-6 text-center">
+                                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
+                                    <FiCalendar className="w-6 h-6 text-primary" />
+                                </div>
+                                <span className="text-foreground font-bold text-lg mb-1">Nessun pasto per oggi</span>
+                                <span className="text-muted-foreground text-sm max-w-sm">
+                                    Non hai ancora pianificato niente per la giornata. Vai al Planner per organizzare i tuoi pasti!
+                                </span>
+                            </div>
+                        </SwiperSlide>
+                    )}
+                </SwiperCarousel>
+            </Container>
+            <section className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 mx-auto w-full max-w-4xl mt-4 mb-8">
                 <Button
-                    className="w-[80%] md:w-64 h-14"
+                    className="w-[80%] md:w-64 h-14 shadow-lg shadow-primary/20"
                     onClick={() => navigate("/recipes")}
                 >
                     <span className="flex items-center gap-2 text-lg font-bold text-foreground">
-                        <FiBook className="w-5 h-5" />
-                        Ricettario
+                        <FiBook className="w-5 h-5" /> Ricettario
                     </span>
                 </Button>
-
                 <Button
-                    className="w-[80%] md:w-64 h-14"
+                    className="w-[80%] md:w-64 h-14 shadow-lg shadow-primary/20"
                     onClick={() => navigate("/planner")}
                 >
                     <span className="flex items-center gap-2 text-lg font-bold text-foreground">
-                        <FiShoppingCart className="w-5 h-5" />
-                        Crea Spesa
+                        <FiCalendar className="w-5 h-5" /> Planner
                     </span>
                 </Button>
-
                 <Button
-                    className="w-[80%] md:w-64 h-14"
+                    className="w-[80%] md:w-64 h-14 shadow-lg shadow-primary/20"
                     onClick={() => navigate("/pantry")}
                 >
                     <span className="flex items-center gap-2 text-lg font-bold text-foreground">
-                        <FiPackage className="w-5 h-5" />
-                        Dispensa
+                        <FiPackage className="w-5 h-5" /> Dispensa
                     </span>
                 </Button>
             </section>

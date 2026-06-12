@@ -1,6 +1,6 @@
 import { type ReactElement, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import Button from "@/components/ui/Button.tsx";
-import { FiShoppingCart } from "react-icons/fi";
+import {FiCalendar, FiShoppingBag, FiShoppingCart} from "react-icons/fi";
 import type {ShoppingListItem, MealPlan, PlannerView} from "@/model/data-model.ts";
 import { shoppingListService } from "@/services/shoppingListService.ts";
 import { mealPlannerService } from "@/services/mealPlannerService.ts";
@@ -58,6 +58,7 @@ export default function Planner(): ReactElement {
     }, [currentView, fetchShoppingList, fetchMealPlans]);
 
     const toggleView = useCallback(() => {
+        setSearchQuery("");
         setCurrentView(prev => prev === 'CALENDAR' ? 'SHOPPING_LIST' : 'CALENDAR');
     }, []);
 
@@ -112,18 +113,29 @@ export default function Planner(): ReactElement {
                             {searchResults.length === 0 ? (
                                 <div className="p-3 text-sm text-muted-foreground italic">Nessun risultato trovato</div>
                             ) : (
-                                searchResults.map((item: MealPlan | ShoppingListItem) => (
-                                    <button
-                                        key={(item).id}
-                                        className="w-full text-left p-3 hover:bg-secondary/30 rounded-lg text-sm font-medium transition-colors"
-                                        onClick={() => handleSearchSelection(item)}
-                                    >
-                                        {(item as MealPlan).recipeTitle || (item as ShoppingListItem).ingredientName}
-                                        <span className="text-xs text-muted-foreground block">
-                                            {(item as MealPlan).mealType || (item as ShoppingListItem).category}
-                                        </span>
-                                    </button>
-                                ))
+                                searchResults.map((item: MealPlan | ShoppingListItem) => {
+                                    const isMeal = currentView === 'CALENDAR';
+                                    const title = isMeal ? (item as MealPlan).recipeTitle : (item as ShoppingListItem).ingredientName;
+                                    const subtitle = isMeal ? (item as MealPlan).mealType : (item as ShoppingListItem).category;
+
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            className="w-full text-left p-3 hover:bg-secondary/30 rounded-lg text-sm font-medium transition-colors flex items-center gap-3"
+                                            onClick={() => handleSearchSelection(item)}
+                                        >
+                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                                {isMeal ? <FiCalendar className="w-4 h-4" /> : <FiShoppingBag className="w-4 h-4" />}
+                                            </div>
+                                            <div className="flex flex-col flex-1 truncate">
+                                                <span className="truncate text-foreground">{title}</span>
+                                                <span className="text-xs text-muted-foreground block truncate">
+                                                    {subtitle}
+                                                </span>
+                                            </div>
+                                        </button>
+                                    );
+                                })
                             )}
                         </div>
                     )
@@ -131,7 +143,6 @@ export default function Planner(): ReactElement {
                 action={
                     <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
                         <Button
-                            variant="outline"
                             onClick={toggleView}
                             className="w-full md:w-auto h-12 px-6 shrink-0"
                         >
@@ -143,7 +154,7 @@ export default function Planner(): ReactElement {
                             <Button
                                 onClick={handleGenerateSpesaClick}
                                 disabled={mealPlans.length === 0}
-                                className="w-full md:w-auto h-12 shrink-0 px-6 bg-emerald-500 hover:bg-emerald-600 hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                                className="h-12 shrink-0 px-6 hover:scale-105 transition-all disabled:opacity-50 disabled:hover:scale-100"
                             >
                                 <span className="flex items-center justify-center gap-2 text-base font-bold text-white">
                                     <FiShoppingCart className="w-5 h-5" />
@@ -155,8 +166,30 @@ export default function Planner(): ReactElement {
                 }
             />
             {isLoading ? (
-                <div className="flex justify-center items-center h-64 text-muted-foreground">
-                    Caricamento...
+                <div className="animate-pulse flex flex-col gap-6 w-full">
+                    {currentView === 'CALENDAR' ? (
+                        <>
+                            <div className="h-16 bg-secondary/20 rounded-xl w-full"></div>
+                            <div className="grid grid-cols-1 xl:grid-cols-7 gap-4">
+                                {Array.from({ length: 7 }).map((_, i) => (
+                                    <div key={i} className="h-96 bg-secondary/20 rounded-2xl"></div>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex justify-between items-center mb-2">
+                                <div className="h-8 bg-secondary/20 rounded-md w-48"></div>
+                                <div className="h-10 bg-secondary/20 rounded-xl w-64"></div>
+                            </div>
+                            <div className="flex flex-col gap-3 bg-background/50 border border-border/50 p-4 rounded-2xl">
+                                <div className="h-5 bg-secondary/20 rounded w-32 mb-2"></div>
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="h-14 bg-secondary/20 rounded-xl w-full"></div>
+                                ))}
+                            </div>
+                        </>
+                    )}
                 </div>
             ) : currentView === 'CALENDAR' ? (
                 <PlannerCalendar
@@ -168,6 +201,7 @@ export default function Planner(): ReactElement {
                 <ShoppingListView
                     shoppingList={shoppingList}
                     onListUpdated={fetchShoppingList}
+                    searchQuery={searchQuery}
                 />
             )}
             {isGeneratingSpesa && (

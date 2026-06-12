@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -38,8 +39,11 @@ public class MealPlanController {
     }
 
     @PostMapping("/{id}/cook")
-    public ResponseEntity<Void> confirmMealCooked(@PathVariable("id") Long id) {
-        mealPlanService.confirmMealCooked(id);
+    public ResponseEntity<Void> confirmMealCooked(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, Integer> payload) {
+        Integer guests = (payload != null && payload.containsKey("guests")) ? payload.get("guests") : null;
+        mealPlanService.confirmMealCooked(id, guests);
         return ResponseEntity.noContent().build();
     }
 

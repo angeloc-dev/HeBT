@@ -1,14 +1,24 @@
-import { type ReactElement, useState } from "react";
-import type { Recipe } from "@/model/data-model.ts";
+import { type ReactElement, useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import type { Recipe, PantryItem } from "@/model/data-model.ts";
 import Button from "@/components/ui/Button.tsx";
 import Select from "@/components/ui/Select.tsx";
-import { FiArrowLeft, FiEdit2, FiTrash2, FiUsers, FiPlay } from "react-icons/fi";
+import { FiArrowLeft, FiEdit2, FiTrash2, FiUsers, FiPlay, FiAlertCircle } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
+import { pantryService } from "@/services/pantryService.ts";
+import {useToast} from "@/hooks/useToast.ts";
 
 const GUEST_OPTIONS = Array.from({ length: 10 }, (_, i) => ({
     value: i + 1,
     label: `${i + 1} ${i === 0 ? "persona" : "persone"}`
 }));
+
+const formatUnit = (amount: number, unit: string) => {
+    if (unit === "qb") return "q.b.";
+    if (unit === "tbsp") return amount === 1 ? "cucchiaio" : "cucchiai";
+    if (unit === "tsp") return amount === 1 ? "cucchiaino" : "cucchiaini";
+    return unit;
+};
 
 interface RecipeDetailProps {
     recipe: Recipe;
@@ -18,7 +28,43 @@ interface RecipeDetailProps {
 }
 
 export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: RecipeDetailProps): ReactElement {
+    const { addToast } = useToast();
     const [guests, setGuests] = useState<number | "">("");
+    const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
+    const [isLoadingPantry, setIsLoadingPantry] = useState<boolean>(true);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const fetchPantry = async () => {
+            try {
+                const data = await pantryService.getPantry();
+                setPantryItems(data);
+            } catch (error) {
+                addToast(`Errore nel caricamento della dispensa: ${error}`, "error");
+            } finally {
+                setIsLoadingPantry(false);
+            }
+        };
+        fetchPantry();
+    }, []);
+
+    const canCook = useMemo(() => {
+        if (guests === "" || isLoadingPantry) return false;
+        const pantryTotals = new Map<string, number>();
+        pantryItems.forEach(item => {
+            const name = item.ingredientName.toLowerCase();
+            pantryTotals.set(name, (pantryTotals.get(name) || 0) + Number(item.currentAmount));
+        });
+        for (const reqIng of recipe.ingredients || []) {
+            if (reqIng.unit === "qb") continue;
+            const requiredAmount = Number(reqIng.amount) * (guests as number);
+            const availableAmount = pantryTotals.get(reqIng.ingredientName.toLowerCase()) || 0;
+            if (availableAmount < requiredAmount) {
+                return false;
+            }
+        }
+        return true;
+    }, [guests, recipe.ingredients, pantryItems, isLoadingPantry]);
 
     return (
         <div className="flex flex-col gap-6">
@@ -74,7 +120,7 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                                             {ing.section && <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-secondary/20 px-2 py-1 rounded-md">{ing.section}</span>}
                                         </div>
                                         <span className="font-bold text-primary">
-                                            {ing.unit === "qb" ? "q.b." : `${ing.amount} ${ing.unit}`}
+                                            {ing.unit === "qb" ? "q.b." : `${ing.amount} ${formatUnit(Number(ing.amount), ing.unit)}`}
                                         </span>
                                     </li>
                                 ))}
@@ -106,14 +152,25 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                             </div>
                             <div className="w-full sm:w-auto sm:mt-7">
                                 <Button
-                                    disabled={guests === ""}
+                                    disabled={guests === "" || !canCook || isLoadingPantry}
+                                    onClick={() => navigate('/pantry')}
                                     className={cn(
                                         "w-full h-12 px-6 transition-all duration-300",
-                                        guests !== "" ? "bg-primary hover:bg-primary/90 hover:scale-105 shadow-[0_0_15px_rgba(34,197,94,0.3)]" : "bg-muted cursor-not-allowed opacity-50"
+                                        guests !== "" && canCook
+                                            ? "bg-primary hover:bg-primary/90 hover:scale-105 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                                            : "bg-muted cursor-not-allowed opacity-50"
                                     )}
                                 >
-                                    <span className={cn("flex items-center justify-center gap-2 text-base font-bold", guests !== "" ? "text-foreground" : "text-muted-foreground")}>
-                                        <FiPlay className="w-5 h-5" /> Cucina piatto
+                                    <span className={cn("flex items-center justify-center gap-2 text-base font-bold", guests !== "" && canCook ? "text-foreground" : "text-muted-foreground")}>
+                                        {isLoadingPantry ? (
+                                            "Controllo dispensa..."
+                                        ) : guests === "" ? (
+                                            <><FiPlay className="w-5 h-5" /> Cucina piatto</>
+                                        ) : !canCook ? (
+                                            <><FiAlertCircle className="w-5 h-5" /> Ingredienti insufficienti</>
+                                        ) : (
+                                            <><FiPlay className="w-5 h-5" /> Cucina piatto</>
+                                        )}
                                     </span>
                                 </Button>
                             </div>

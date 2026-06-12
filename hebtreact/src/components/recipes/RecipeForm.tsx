@@ -1,4 +1,4 @@
-import { type ReactElement, useState } from "react";
+import { type ReactElement, useState, useMemo } from "react";
 import type { Recipe, DraftIngredient } from "@/model/data-model.ts";
 import Button from "@/components/ui/Button.tsx";
 import InputText from "@/components/ui/InputText.tsx";
@@ -7,7 +7,7 @@ import Select from "@/components/ui/Select.tsx";
 import { FiCheck, FiPlus, FiTrash2, FiTag } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
 import { useToast } from "@/hooks/useToast.ts";
-import {SHOPPING_SECTION_GROUPS, UNIT_GROUPS} from "@/model/constants.ts";
+import { SHOPPING_SECTION_GROUPS, UNIT_GROUPS } from "@/model/constants.ts";
 
 interface RecipeFormProps {
     initialRecipe?: Recipe | null;
@@ -39,7 +39,13 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
 
     const updateIngredientRow = (index: number, field: keyof DraftIngredient, value: string | number) => {
         const newIngredients = [...draftIngredients];
-        newIngredients[index] = { ...newIngredients[index], [field]: value };
+
+        if (field === 'amount' && Number(value) < 0) {
+            newIngredients[index] = { ...newIngredients[index], amount: 0 };
+        } else {
+            newIngredients[index] = { ...newIngredients[index], [field]: value };
+        }
+
         if (field === 'unit' && value === 'qb') {
             newIngredients[index].amount = 0;
         }
@@ -51,24 +57,35 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
     };
 
     const addIngredientRow = () => {
+        setActiveSuggestionIndex(null);
         setDraftIngredients([...draftIngredients, { ingredientName: "", amount: 0, unit: "", section: "" }]);
     };
 
-    const canAddIngredient = draftIngredients.every(ing =>
-        ing.ingredientName.trim() !== "" &&
-        ing.unit !== "" &&
-        (ing.unit === "qb" || String(ing.amount).trim() !== "")
-    );
+    const isFormValid = useMemo(() => {
+        if (!title.trim()) return false;
+
+        const areIngredientsValid = draftIngredients.every(ing => {
+            const isNameValid = ing.ingredientName.trim() !== "";
+            const isUnitValid = ing.unit !== "";
+            const isSectionValid = ing.section !== "";
+            const isAmountValid = ing.unit === "qb" || Number(ing.amount) > 0;
+            return isNameValid && isUnitValid && isSectionValid && isAmountValid;
+        });
+
+        return areIngredientsValid;
+    }, [title, draftIngredients]);
 
     const handleSubmit = () => {
-        if (!title.trim()) {
-            addToast("Il titolo della ricetta è obbligatorio.", "warning");
+        if (!isFormValid) {
+            addToast("Controlla di aver inserito titolo e che tutti gli ingredienti abbiano nome, quantità (> 0), unità e reparto validi.", "warning");
             return;
         }
 
-        const formattedIngredients = draftIngredients.map(ing => ({
+        const validIngredients = draftIngredients.filter(ing => ing.ingredientName.trim() !== "");
+
+        const formattedIngredients = validIngredients.map(ing => ({
             ingredientId: ing.ingredientId,
-            ingredientName: ing.ingredientName,
+            ingredientName: ing.ingredientName.trim(), // Rimuovi spazi bianchi extra che causano bug
             amount: ing.unit === "qb" ? 0 : Number(ing.amount) || 0,
             unit: ing.unit,
             section: ing.section
@@ -76,10 +93,10 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
 
         const recipeData = {
             id: initialRecipe ? initialRecipe.id : 0,
-            title,
-            description,
-            instructions,
-            image,
+            title: title.trim(),
+            description: description.trim(),
+            instructions: instructions.trim(),
+            image: image.trim(),
             ingredients: formattedIngredients,
             isInMealPlan: initialRecipe?.isInMealPlan || false
         };
@@ -97,11 +114,12 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-semibold text-foreground ml-1">Titolo Ricetta</label>
+                    <label className="text-sm font-semibold text-foreground ml-1">Titolo Ricetta *</label>
                     <InputText
                         placeholder="es. Pasta alla Norma"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
+                        autoComplete="off"
                     />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -110,6 +128,7 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                         placeholder="https://..." type="url"
                         value={image}
                         onChange={(e) => setImage(e.target.value)}
+                        autoComplete="off"
                     />
                 </div>
                 <div className="flex flex-col gap-2 md:col-span-2">
@@ -118,6 +137,7 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                         placeholder="Una breve descrizione del piatto..."
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
+                        autoComplete="off"
                     />
                 </div>
                 <div className="flex flex-col gap-2 md:col-span-2">
@@ -130,18 +150,19 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                 </div>
             </div>
             <div className="p-5 rounded-xl bg-background/30 border border-border/30 mt-2 overflow-visible">
-                <h3 className="text-lg font-bold mb-4 text-primary">Ingredienti</h3>
+                <h3 className="text-lg font-bold mb-4 text-primary">Ingredienti *</h3>
                 <div className="flex flex-col gap-3 mb-4">
                     {draftIngredients.map((ing, index) => (
                         <div key={index} className="flex flex-col md:flex-row gap-3 items-start md:items-center animate-in fade-in duration-200">
                             <div className="relative w-full md:flex-1">
                                 <InputText
-                                    placeholder="Nome (es. Sale)"
+                                    placeholder="Ingrediente (es. Sale)"
                                     value={ing.ingredientName}
                                     onFocus={() => setActiveSuggestionIndex(index)}
-                                    onBlur={() => setTimeout(() => setActiveSuggestionIndex(null), 200)}
+                                    onBlur={() => setTimeout(() => setActiveSuggestionIndex(null), 150)}
                                     onChange={(e) => updateIngredientRow(index, 'ingredientName', e.target.value)}
                                     className="w-full"
+                                    name={`ing-name-${index}`}
                                 />
                                 {activeSuggestionIndex === index && ing.ingredientName.length > 0 && (
                                     <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl">
@@ -150,11 +171,12 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                                             .map(suggestion => (
                                                 <div
                                                     key={suggestion}
-                                                    className="p-3 flex items-center gap-2 cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors text-sm text-foreground font-medium border-b border-border/50 last:border-0"
-                                                    onClick={() => {
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
                                                         updateIngredientRow(index, 'ingredientName', suggestion);
                                                         setActiveSuggestionIndex(null);
                                                     }}
+                                                    className="p-3 flex items-center gap-2 cursor-pointer hover:bg-primary/20 hover:text-primary transition-colors text-sm text-foreground font-medium border-b border-border/50 last:border-0"
                                                 >
                                                     <FiTag className="text-muted-foreground w-4 h-4 shrink-0" />
                                                     {suggestion}
@@ -164,16 +186,18 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                                     </div>
                                 )}
                             </div>
-                            <div className="flex gap-3 w-full md:w-auto">
+                            <div className="flex gap-2 sm:gap-3 w-full md:w-auto">
                                 <InputText
                                     type="number"
                                     placeholder="Qtà"
                                     value={ing.amount}
                                     onChange={(e) => updateIngredientRow(index, 'amount', e.target.value)}
-                                    className="w-20"
+                                    className="w-16 sm:w-20"
+                                    min="0"
+                                    step="0.1"
                                     disabled={ing.unit === "qb"}
                                 />
-                                <div className="w-40">
+                                <div className="w-28 sm:w-36 shrink-0">
                                     <Select
                                         groups={UNIT_GROUPS}
                                         value={ing.unit}
@@ -181,7 +205,7 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                                         placeholder="Unità..."
                                     />
                                 </div>
-                                <div className="w-40">
+                                <div className="w-28 sm:w-36 shrink-0">
                                     <Select
                                         groups={SHOPPING_SECTION_GROUPS}
                                         value={ing.section}
@@ -202,13 +226,9 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                 </div>
                 <Button
                     onClick={addIngredientRow}
-                    disabled={!canAddIngredient}
-                    className={cn(
-                        "h-10 w-full md:w-auto transition-colors",
-                        canAddIngredient ? "bg-primary/20 hover:bg-primary/30" : "bg-muted cursor-not-allowed opacity-50"
-                    )}
+                    className="h-10 w-full md:w-auto transition-colors bg-secondary/30 hover:bg-secondary/50 text-foreground"
                 >
-                    <span className={cn("flex items-center justify-center gap-2 text-base font-bold", canAddIngredient ? "text-foreground" : "text-muted-foreground")}>
+                    <span className="flex items-center justify-center gap-2 text-base font-bold">
                         <FiPlus className="w-4 h-4" /> Aggiungi Ingrediente
                     </span>
                 </Button>
@@ -219,13 +239,13 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                 </Button>
                 <Button
                     onClick={handleSubmit}
-                    disabled={isLoading}
+                    disabled={isLoading || !isFormValid}
                     className={cn(
                         "h-11 px-8 transition-all",
-                        isLoading ? "bg-muted cursor-wait" : "bg-primary hover:bg-primary/90"
+                        isLoading ? "bg-muted cursor-wait" : (!isFormValid ? "bg-muted text-muted-foreground opacity-50 cursor-not-allowed" : "bg-primary hover:bg-primary/90")
                     )}
                 >
-                    <span className="flex items-center justify-center gap-2 text-base font-bold text-foreground">
+                    <span className="flex items-center justify-center gap-2 text-base font-bold text-white">
                         {isLoading ? "Salvataggio..." : <><FiCheck className="w-5 h-5" /> Salva Ricetta</>}
                     </span>
                 </Button>

@@ -32,7 +32,7 @@ public class IngredientService {
     public IngredientDTO createIngredient(String name, String category) {
         Optional<Ingredient> existing = ingredientRepository.findByNameIgnoreCase(name);
         if (existing.isPresent()) {
-            return mapToDTO(existing.get()); // Se esiste già, restituisco quello vecchio
+            return mapToDTO(existing.get());
         }
 
         Ingredient newIngredient = Ingredient.builder()

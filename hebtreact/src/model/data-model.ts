@@ -90,3 +90,7 @@ export interface MealSlotConfig {
 }
 
 export type ButtonVariant = "default" | "secondary" | "outline" | "ghost" | "destructive";
+
+// -- Vista Pantry
+
+export type SortMode = "expiration_asc" | "category_asc";

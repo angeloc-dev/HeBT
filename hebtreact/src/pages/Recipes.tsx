@@ -99,7 +99,7 @@ export default function Recipes(): ReactElement {
             setIsLoading(true);
             await recipeService.deleteRecipe(recipeToDelete.id);
             await fetchRecipes();
-            addToast("Ricetta eliminata.", "success");
+            addToast("Ricetta eliminata con successo.", "success");
             navigate(`/recipes`);
         } catch (err) {
             addToast(`Errore durante l'eliminazione:${err}`, "error");
@@ -153,21 +153,24 @@ export default function Recipes(): ReactElement {
                 searchValue={searchTerm}
                 onSearchChange={setSearchTerm}
                 onSearchFocus={() => setIsSearchFocused(true)}
-                onSearchBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                searchPlaceholder="Cerca per nome o ingrediente..."
+                onSearchBlur={() => setTimeout(() => setIsSearchFocused(false), 150)}
+                searchPlaceholder="Cerca ricetta o ingrediente..."
                 buttonText={getTopButtonText()}
                 buttonIcon={isAddingRecipe ? <FiX className="w-5 h-5" /> : <FiPlus className="w-5 h-5" />}
                 onButtonClick={() => isAddingRecipe ? handleCancelForm() : handleAddRecipe()}
                 searchOverlay={
                     isSearchFocused && searchTerm.trim() !== "" && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-background/95 backdrop-blur-md border border-border shadow-xl rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-background/95 backdrop-blur-md border border-border shadow-xl rounded-xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
                             {searchSuggestions.length > 0 ? (
                                 <div className="flex flex-col">
                                     {searchSuggestions.map((sug, i) => (
                                         <div
                                             key={`${sug.recipeId}-${sug.text}-${i}`}
                                             className="p-3 flex items-center gap-3 cursor-pointer hover:bg-secondary/20 transition-colors border-b border-border/50 last:border-0"
-                                            onClick={() => handleOpenRecipe(sug.recipeId)}
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                handleOpenRecipe(sug.recipeId);
+                                            }}
                                         >
                                             <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                                                 {sug.type === 'recipe' ? <FiBook className="w-4 h-4" /> : <FiTag className="w-4 h-4" />}

@@ -126,7 +126,6 @@ public class RecipeService {
                 .instructions(recipeDTO.instructions())
                 .imageUrl(recipeDTO.image())
                 .build();
-
         if (recipeDTO.ingredients() != null) {
             for (RecipeIngredientDTO riDTO : recipeDTO.ingredients()) {
                 Ingredient ingredient;
@@ -136,9 +135,10 @@ public class RecipeService {
                 } else {
                     ingredient = ingredientRepository.findByNameIgnoreCase(riDTO.ingredientName())
                             .orElseGet(() -> {
+                                String cat = riDTO.category() != null ? riDTO.category() : (riDTO.section() != null ? riDTO.section() : "Altro");
                                 Ingredient newIng = Ingredient.builder()
                                         .name(riDTO.ingredientName())
-                                        .category(riDTO.category() != null ? riDTO.category() : "Altro")
+                                        .category(cat)
                                         .build();
                                 return ingredientRepository.save(newIng);
                             });
@@ -160,13 +160,11 @@ public class RecipeService {
     @Transactional
     public RecipeDTO updateRecipe(Long id, RecipeDTO recipeDTO) {
         Recipe existingRecipe = recipeRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Ricetta non trovata: " + id));
-
+                .orElseThrow(() -> new IllegalArgumentException("Recipe not found: " + id));
         existingRecipe.setTitle(recipeDTO.title());
         existingRecipe.setDescription(recipeDTO.description());
         existingRecipe.setInstructions(recipeDTO.instructions());
         existingRecipe.setImageUrl(recipeDTO.image());
-
         List<RecipeIngredient> daRimuovere = new ArrayList<>();
         for (RecipeIngredient ri : existingRecipe.getIngredients()) {
             boolean trovato = false;
@@ -185,7 +183,6 @@ public class RecipeService {
             }
         }
         existingRecipe.getIngredients().removeAll(daRimuovere);
-
         if (recipeDTO.ingredients() != null) {
             for (RecipeIngredientDTO riDTO : recipeDTO.ingredients()) {
                 Ingredient ingredient;
@@ -195,9 +192,10 @@ public class RecipeService {
                 } else {
                     ingredient = ingredientRepository.findByNameIgnoreCase(riDTO.ingredientName())
                             .orElseGet(() -> {
+                                String cat = riDTO.category() != null ? riDTO.category() : (riDTO.section() != null ? riDTO.section() : "Altro");
                                 Ingredient newIng = Ingredient.builder()
                                         .name(riDTO.ingredientName())
-                                        .category(riDTO.category() != null ? riDTO.category() : "Altro")
+                                        .category(cat)
                                         .build();
                                 return ingredientRepository.save(newIng);
                             });
@@ -223,7 +221,6 @@ public class RecipeService {
                 }
             }
         }
-
         Recipe savedRecipe = recipeRepository.save(existingRecipe);
         return mapToDTO(savedRecipe);
     }

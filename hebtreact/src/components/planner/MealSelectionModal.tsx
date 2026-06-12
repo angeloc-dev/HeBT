@@ -44,8 +44,7 @@ export default function MealSelectionModal({
             const data = await recipeService.getAllRecipes();
             setRecipes(data);
         } catch (err) {
-            console.error("Errore nel caricamento delle ricette:", err);
-            setError("Impossibile caricare il ricettario.");
+            setError(`Impossibile caricare il ricettario: ${err}`);
         } finally {
             setIsLoadingRecipes(false);
         }
@@ -89,7 +88,6 @@ export default function MealSelectionModal({
             onSuccess();
         } catch (error) {
             const err = error as Error;
-            console.error("Errore nel salvataggio del pasto:", err);
             setError(err?.message || "Si è verificato un errore durante il salvataggio.");
         } finally {
             setIsSaving(false);

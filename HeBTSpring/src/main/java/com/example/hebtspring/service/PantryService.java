@@ -1,5 +1,6 @@
 package com.example.hebtspring.service;
 
+import com.example.hebtspring.dto.IngredientDTO;
 import com.example.hebtspring.dto.PantryItemDTO;
 import com.example.hebtspring.model.Ingredient;
 import com.example.hebtspring.model.PantryItem;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +20,7 @@ public class PantryService {
 
     private final PantryItemRepository pantryItemRepository;
     private final IngredientRepository ingredientRepository;
+    private final IngredientService ingredientService;
 
     // Metodo di utilità per trasformare l'Entity in DTO
     private PantryItemDTO mapToDTO(PantryItem item) {
@@ -46,8 +49,15 @@ public class PantryService {
         }
 
         Ingredient ingredient = ingredientRepository.findById(itemDTO.ingredientId())
-                .orElseThrow(() -> new IllegalArgumentException("Ingredient not found"));
-
+                .orElseGet(() -> ingredientRepository.findByNameIgnoreCase(itemDTO.ingredientName())
+                        .orElseGet(() -> {
+                            IngredientDTO newIng = ingredientService.createIngredient(
+                                    itemDTO.ingredientName(),
+                                    itemDTO.category()
+                            );
+                            return ingredientRepository.findById(newIng.id())
+                                    .orElseThrow(() -> new IllegalStateException("Errore nella creazione dell'ingrediente"));
+                        }));
         PantryItem newPantryItem = PantryItem.builder()
                 .ingredient(ingredient)
                 .currentAmount(itemDTO.currentAmount())
@@ -55,11 +65,9 @@ public class PantryService {
                 .expirationDate(itemDTO.expirationDate())
                 .purchaseDate(LocalDate.now())
                 .build();
-
         PantryItem saved = pantryItemRepository.save(newPantryItem);
         return this.mapToDTO(saved);
     }
-
     public BigDecimal getAvailableAmountValidForDate(Long ingredientId, LocalDate targetDate) {
         List<PantryItem> validBatches = pantryItemRepository
                 .findByIngredientIdAndExpirationDateGreaterThanEqual(ingredientId, targetDate);

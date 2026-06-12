@@ -8,13 +8,15 @@ import { useToast } from "@/hooks/useToast.ts";
 import ShoppingListItemRow from "@/components/planner/ShoppingListItemRow.tsx";
 import AddManualItemModal from "@/components/planner/AddManualItemModal.tsx";
 import ConfirmModal from "@/components/ui/ConfirmModal.tsx";
+import { cn } from "@/lib/utils.ts";
 
 interface ShoppingListViewProps {
     shoppingList: ShoppingListItem[];
     onListUpdated: () => void;
+    searchQuery: string;
 }
 
-export default function ShoppingListView({ shoppingList, onListUpdated }: ShoppingListViewProps): ReactElement {
+export default function ShoppingListView({ shoppingList, onListUpdated, searchQuery }: ShoppingListViewProps): ReactElement {
     const { addToast } = useToast();
     const [isClearing, setIsClearing] = useState<boolean>(false);
     const [itemToPurchase, setItemToPurchase] = useState<ShoppingListItem | null>(null);
@@ -25,7 +27,11 @@ export default function ShoppingListView({ shoppingList, onListUpdated }: Shoppi
 
     const groupedList = useMemo(() => {
         const groups: Record<string, ShoppingListItem[]> = {};
-        shoppingList.forEach(item => {
+        const filteredList = searchQuery.trim()
+            ? shoppingList.filter(item => item.ingredientName.toLowerCase().includes(searchQuery.toLowerCase()))
+            : shoppingList;
+
+        filteredList.forEach(item => {
             const cat = item.category || "Altro";
             if (!groups[cat]) groups[cat] = [];
             groups[cat].push(item);
@@ -35,7 +41,11 @@ export default function ShoppingListView({ shoppingList, onListUpdated }: Shoppi
             acc[key] = groups[key];
             return acc;
         }, {} as Record<string, ShoppingListItem[]>);
-    }, [shoppingList]);
+    }, [shoppingList, searchQuery]);
+
+    const filteredCount = useMemo(() => {
+        return Object.values(groupedList).reduce((total, items) => total + items.length, 0);
+    }, [groupedList]);
 
     const handleClearListClick = useCallback(() => {
         setIsConfirmClearOpen(true);
@@ -110,7 +120,9 @@ export default function ShoppingListView({ shoppingList, onListUpdated }: Shoppi
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out flex flex-col gap-6 mt-2">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-2">
                 <h2 className="text-2xl font-bold text-foreground">
-                    Da Acquistare <span className="text-muted-foreground text-lg font-medium ml-1">({shoppingList.length})</span>
+                    Da Acquistare <span className="text-muted-foreground text-lg font-medium ml-1">
+                        ({filteredCount}{searchQuery.trim() ? ` di ${shoppingList.length}` : ''})
+                    </span>
                 </h2>
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <Button
@@ -131,24 +143,36 @@ export default function ShoppingListView({ shoppingList, onListUpdated }: Shoppi
                     </Button>
                 </div>
             </div>
-            <div className="flex flex-col gap-6">
-                {Object.entries(groupedList).map(([category, items]) => (
-                    <div key={category} className="flex flex-col gap-3 bg-background/50 border border-border/50 p-4 rounded-2xl">
-                        <h3 className="text-sm font-black text-primary border-b border-primary/20 pb-2 uppercase tracking-widest">
-                            {category}
-                        </h3>
-                        <div className="flex flex-col gap-2">
-                            {items.map(item => (
-                                <ShoppingListItemRow
-                                    key={item.id}
-                                    item={item}
-                                    onPurchaseRequest={() => handleInitiatePurchase(item)}
-                                    onListUpdated={onListUpdated}
-                                />
-                            ))}
-                        </div>
+            <div className="flex flex-col bg-background/50 border border-border/50 p-4 md:p-6 rounded-2xl shadow-sm">
+                {filteredCount === 0 && searchQuery.trim() !== "" ? (
+                    <div className="py-8 text-center text-muted-foreground italic">
+                        Nessun ingrediente trovato per "{searchQuery}"
                     </div>
-                ))}
+                ) : (
+                    Object.entries(groupedList).map(([category, items], index) => (
+                        <div
+                            key={category}
+                            className={cn(
+                                "flex flex-col gap-3",
+                                index > 0 && "mt-6 pt-6 border-t border-border/30"
+                            )}
+                        >
+                            <h3 className="text-sm font-black text-primary uppercase tracking-widest">
+                                {category}
+                            </h3>
+                            <div className="flex flex-col gap-2">
+                                {items.map(item => (
+                                    <ShoppingListItemRow
+                                        key={item.id}
+                                        item={item}
+                                        onPurchaseRequest={() => handleInitiatePurchase(item)}
+                                        onListUpdated={onListUpdated}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
             {itemToPurchase && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">

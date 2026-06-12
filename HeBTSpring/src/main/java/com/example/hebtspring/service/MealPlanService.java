@@ -77,12 +77,12 @@ public class MealPlanService {
     }
 
     @Transactional
-    public void confirmMealCooked(Long mealPlanId) {
+    public void confirmMealCooked(Long mealPlanId, Integer guests) {
         MealPlan mealPlan = mealPlanRepository.findById(mealPlanId)
                 .orElseThrow(() -> new IllegalArgumentException("Meal Plan not found."));
-        BigDecimal servings = new BigDecimal(mealPlan.getServings());
+        BigDecimal finalServings = (guests != null) ? new BigDecimal(guests) : new BigDecimal(mealPlan.getServings());
         for (RecipeIngredient ri : mealPlan.getRecipe().getIngredients()) {
-            BigDecimal rawTotalNeeded = ri.getAmount().multiply(servings);
+            BigDecimal rawTotalNeeded = ri.getAmount().multiply(finalServings);
             UnitConversionService.BaseQuantity baseQty = unitConversionService.convertToBase(
                     rawTotalNeeded, ri.getUnit(), ri.getIngredient().getName()
             );

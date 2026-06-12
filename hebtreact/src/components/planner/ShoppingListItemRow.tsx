@@ -34,6 +34,7 @@ export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseReq
         try {
             await shoppingListService.updateItemAmount(item.id, parsedAmount);
             onListUpdated();
+            addToast(`Quantità aggiornata con successo`, "success");
         } catch (error) {
             addToast(`Errore nell'aggiornamento della quantità: ${error}`, "error");
             setAmountValue(item.amount);
@@ -45,6 +46,7 @@ export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseReq
         try {
             await shoppingListService.deleteShoppingListItem(item.id);
             onListUpdated();
+            addToast(`Voce eliminata con successo`, "success");
         } catch (error) {
             addToast(`Errore nell'eliminazione della voce: ${error}`, "error");
             setIsDeleting(false);
@@ -52,8 +54,8 @@ export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseReq
     }, [item.id, onListUpdated, addToast]);
 
     return (
-        <div className="group flex items-center justify-between p-3 rounded-xl border border-border/50 bg-background hover:border-primary/30 transition-colors">
-            <div className="flex items-center gap-4 flex-1">
+        <div className="group flex items-center justify-between p-3 rounded-xl border border-border/50 bg-background hover:border-primary/30 transition-colors gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button
                     onClick={onPurchaseRequest}
                     className="w-6 h-6 rounded border-2 border-muted-foreground hover:border-emerald-500 hover:text-emerald-500 flex items-center justify-center transition-colors shrink-0 cursor-pointer"
@@ -61,11 +63,11 @@ export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseReq
                 >
                     <FiCheck className="w-4 h-4 opacity-0 group-hover:opacity-100" />
                 </button>
-                <span className="text-base font-semibold text-foreground truncate">
+                <span className="text-base font-semibold text-foreground truncate" title={item.ingredientName}>
                     {item.ingredientName}
                 </span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                 <div className="flex items-center gap-1 bg-secondary/20 rounded-lg p-1 pr-3 border border-border/50">
                     <InputText
                         type="number"
@@ -74,9 +76,9 @@ export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseReq
                         value={amountValue}
                         onChange={(e) => setAmountValue(e.target.value)}
                         onBlur={handleAmountUpdate}
-                        className="w-16 h-8 text-center bg-transparent border-none focus-visible:ring-0 text-sm font-bold p-0 shadow-none"
+                        className="w-14 sm:w-16 h-8 text-center bg-transparent border-none focus-visible:ring-0 text-sm font-bold p-0 shadow-none"
                     />
-                    <span className="text-xs font-bold text-muted-foreground w-6 text-left">
+                    <span className="text-xs font-bold text-muted-foreground w-6 text-left truncate">
                         {item.unit}
                     </span>
                 </div>
@@ -84,7 +86,7 @@ export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseReq
                     onClick={handleDelete}
                     disabled={isDeleting}
                     className={cn(
-                        "text-muted-foreground hover:text-destructive transition-colors p-2 rounded-md hover:bg-destructive/10 cursor-pointer",
+                        "text-muted-foreground hover:text-destructive transition-colors p-2 rounded-md hover:bg-destructive/10 cursor-pointer shrink-0",
                         isDeleting && "opacity-50 cursor-not-allowed"
                     )}
                     title="Elimina voce"
