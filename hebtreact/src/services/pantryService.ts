@@ -3,9 +3,9 @@ import {API_BASE_URL} from "@/model/constants.ts";
 import axios from "axios";
 
 export const pantryService = {
-    async getPantry(): Promise<PantryItem[]> {
+    async getPantry(signal?: AbortSignal): Promise<PantryItem[]> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/pantry`);
+            const response = await axios.get(`${API_BASE_URL}/pantry`, { signal });
             return response.data;
         } catch (error) {
             console.error("Errore nel reperimento degli elementi della dispensa:", error);
@@ -18,6 +18,15 @@ export const pantryService = {
             return response.data;
         } catch (error) {
             console.error("Errore nell'aggiunta di un elemento alla dispensa:", error);
+            throw error;
+        }
+    },
+    async updatePantryItem (id: number, item: PantryItem): Promise<PantryItem> {
+        try {
+            const response = await axios.put(`${API_BASE_URL}/pantry/${id}`, item);
+            return response.data;
+        } catch (error) {
+            console.error("Errore nell'aggiornamento di un elemento alla dispensa:", error);
             throw error;
         }
     },

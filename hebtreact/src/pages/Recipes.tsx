@@ -5,16 +5,15 @@ import type { Recipe } from "@/model/data-model.ts";
 import { recipeService } from "@/services/recipeService.ts";
 import { FiPlus, FiX, FiBook, FiTag } from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
-import { useToast } from "@/hooks/useToast.ts";
 import ConfirmModal from "@/components/ui/ConfirmModal.tsx";
 import RecipeDetail from "../components/recipes/RecipeDetails.tsx";
 import PageHeader from "@/components/PageHeader.tsx";
 import RecipeForm from "../components/recipes/RecipeForm.tsx";
+import {toast} from "sonner";
 
 export default function Recipes(): ReactElement {
     const navigate = useNavigate();
     const { id } = useParams();
-    const { addToast } = useToast();
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [searchTerm, setSearchTerm] = useState<string>("");
@@ -55,60 +54,69 @@ export default function Recipes(): ReactElement {
         return suggestions.slice(0, 6);
     }, [searchTerm, recipes]);
 
-    const fetchRecipes = useCallback(async () => {
+    const fetchRecipes = useCallback(async (showLoader = true) => {
+        const controller = new AbortController();
+        if (showLoader) setIsLoading(true);
         try {
-            const data = await recipeService.getAllRecipes();
+            const data = await recipeService.getAllRecipes(controller.signal);
             setRecipes(data);
         } catch (err) {
-            addToast(err instanceof Error ? err.message : "Errore sconosciuto", "error");
+            if (err instanceof Error && err.name !== "CanceledError" && err.name !== "AbortError") {
+                toast.error("Errore nel caricamento del ricettario");
+            }
         } finally {
-            setIsLoading(false);
+            if (showLoader) setIsLoading(false);
+            controller.abort();
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         const loadInitialData = async () => {
-            await fetchRecipes();
+            await fetchRecipes(true);
         };
 
         loadInitialData();
     }, [fetchRecipes]);
 
-    const handleSaveRecipe = async (recipeData: Recipe, isEdit: boolean) => {
-        try {
-            setIsLoading(true);
-            if (isEdit) {
-                await recipeService.editRecipe(recipeData.id, recipeData);
-                addToast("Ricetta aggiornata con successo!", "success");
-            } else {
-                await recipeService.createRecipe(recipeData);
-                addToast("Ricetta aggiunta con successo!", "success");
+    const handleSaveRecipe = useCallback(async (recipeData: Recipe, isEdit: boolean) => {
+        setIsLoading(true);
+        const savePromise = async () => {
+            try {
+                if (isEdit) {
+                    await recipeService.editRecipe(recipeData.id, recipeData);
+                } else {
+                    await recipeService.createRecipe(recipeData);
+                }
+            } finally {
+                setIsLoading(false);
             }
-            handleCancelForm();
-            fetchRecipes();
-        } catch (err) {
-            addToast(err instanceof Error ? err.message : "Errore durante il salvataggio.", "error");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        };
+        toast.promise(savePromise(), {
+            loading: "Aggiornamento della ricetta in corso...",
+            success : isEdit ? "Ricetta aggiornata con successo!" : "Ricetta aggiunta con successo!",
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`
+        });
+    }, []);
 
-    const confirmDelete = async () => {
+    const confirmDelete = useCallback(async () => {
         if (!recipeToDelete) return;
-        try {
-            setIsLoading(true);
-            await recipeService.deleteRecipe(recipeToDelete.id);
-            await fetchRecipes();
-            addToast("Ricetta eliminata con successo.", "success");
-            navigate(`/recipes`);
-        } catch (err) {
-            addToast(`Errore durante l'eliminazione:${err}`, "error");
-            setIsLoading(false);
-        } finally {
-            setIsDeleteModalOpen(false);
-            setRecipeToDelete(null);
-        }
-    };
+        setIsLoading(true);
+
+        const savePromise = async () => {
+            try {
+                await recipeService.deleteRecipe(recipeToDelete.id);
+                await fetchRecipes(false);
+                navigate(`/recipes`);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Eliminazione della ricetta in corso...",
+            success: "Ricetta eliminata con successo.",
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`
+        });
+    }, [fetchRecipes, navigate, recipeToDelete]);
 
     const handleOpenRecipe = (recipeId: number) => {
         setSearchTerm("");

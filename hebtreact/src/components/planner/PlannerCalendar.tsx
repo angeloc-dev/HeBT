@@ -16,7 +16,7 @@ export interface PlannerCalendarRef {
 }
 
 const PlannerCalendar = forwardRef<PlannerCalendarRef, PlannerCalendarProps>(
-    ({ mealPlans, onMealsUpdated, readOnly = false }, ref) => { // <-- ESTRATTO readOnly
+    ({ mealPlans, onMealsUpdated, readOnly = false }, ref) => {
         const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => getStartOfWeek(new Date()));
 
         useImperativeHandle(ref, () => ({

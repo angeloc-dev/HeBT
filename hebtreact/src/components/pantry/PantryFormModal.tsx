@@ -2,12 +2,17 @@ import { type ReactElement, useState, useMemo, useCallback } from "react";
 import { FiX, FiCheck } from "react-icons/fi";
 import type { PantryItem } from "@/model/data-model.ts";
 import { pantryService } from "@/services/pantryService.ts";
-import { useToast } from "@/hooks/useToast.ts";
 import InputText from "@/components/ui/InputText.tsx";
 import Select from "@/components/ui/Select.tsx";
 import CustomButton from "../ui/CustomButton.tsx";
-import { UNIT_GROUPS, SHOPPING_SECTION_GROUPS } from "@/model/constants.ts";
+import {UNIT_GROUPS, SHOPPING_SECTION_GROUPS, formatExpirationDateForInput} from "@/model/constants.ts";
 import { cn } from "@/lib/utils.ts";
+import {toast} from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover.tsx";
+import { Button } from "../ui/button.tsx";
+import { Calendar } from "../ui/calendar.tsx";
+import { format, parseISO } from "date-fns";
+import { it } from "date-fns/locale";
 
 interface PantryFormModalProps {
     isOpen: boolean;
@@ -16,27 +21,19 @@ interface PantryFormModalProps {
     onSuccess: () => void;
 }
 
-const formatDateForInput = (dateInput: Date | string | undefined): string => {
-    if (!dateInput) return "";
-    const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
-    if (isNaN(date.getTime())) return "";
-    return date.toISOString().split("T")[0];
-};
-
 export default function PantryFormModal({ isOpen, existingItem, onClose, onSuccess }: PantryFormModalProps): ReactElement | null {
-    const { addToast } = useToast();
     const [name, setName] = useState<string>(existingItem ? existingItem.ingredientName : "");
     const [amount, setAmount] = useState<number | string>(existingItem ? existingItem.currentAmount : "");
     const [unit, setUnit] = useState<string>(existingItem ? existingItem.unit : "");
     const [category, setCategory] = useState<string>(existingItem ? (existingItem.category || "") : "");
     const [expirationDate, setExpirationDate] = useState<string>(() => {
-        if (existingItem) return formatDateForInput(existingItem.expirationDate);
+        if (existingItem) return formatExpirationDateForInput(existingItem.expirationDate);
         const targetDate = new Date();
         targetDate.setDate(targetDate.getDate() + 7);
-        return formatDateForInput(targetDate);
+        return formatExpirationDateForInput(targetDate);
     });
-
     const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [isDateOpen, setIsDateOpen] = useState<boolean>(false);
 
     const isFormValid = useMemo(() => {
         return (
@@ -49,9 +46,16 @@ export default function PantryFormModal({ isOpen, existingItem, onClose, onSucce
         );
     }, [name, amount, unit, category, expirationDate]);
 
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+
     const handleSubmit = useCallback(async () => {
         if (!isFormValid) return;
         setIsSaving(true);
+
         const payload: PantryItem = {
             id: existingItem ? existingItem.id : 0,
             ingredientId: existingItem ? existingItem.ingredientId : 0,
@@ -62,28 +66,34 @@ export default function PantryFormModal({ isOpen, existingItem, onClose, onSucce
             expirationDate: new Date(expirationDate),
             purchaseDate: existingItem ? new Date(existingItem.purchaseDate) : new Date()
         };
-        try {
-            await pantryService.addPantryItem(payload);
-            addToast(
-                existingItem
-                    ? "Ingrediente aggiornato correttamente!"
-                    : "Ingrediente aggiunto alla dispensa!",
-                "success"
-            );
-            onSuccess();
-        } catch (error) {
-            addToast(`Errore durante il salvataggio: ${error}`, "error");
-        } finally {
-            setIsSaving(false);
-        }
-    }, [isFormValid, existingItem, name, category, amount, unit, expirationDate, onSuccess, addToast]);
+
+        const savePromise = async () => {
+            try {
+                if (existingItem && existingItem.id) {
+                    await pantryService.updatePantryItem(existingItem.id, payload);
+                } else {
+                    await pantryService.addPantryItem(payload);
+                }
+                onSuccess();
+            } finally {
+                setIsSaving(false);
+            }
+        };
+
+        toast.promise(savePromise(), {
+            loading: "Aggiorno la dispensa...",
+            success: existingItem
+                ? "Ingrediente aggiornato correttamente!"
+                : "Ingrediente aggiunto alla dispensa!",
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`,
+        });
+    }, [isFormValid, existingItem, name, category, amount, unit, expirationDate, onSuccess]);
 
     if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl p-6 flex flex-col gap-6 animate-in zoom-in-95 duration-200 overflow-visible">
-
                 <div className="flex justify-between items-start border-b border-border/50 pb-3">
                     <div>
                         <h3 className="text-xl font-bold text-foreground">
@@ -141,11 +151,38 @@ export default function PantryFormModal({ isOpen, existingItem, onClose, onSucce
                     </div>
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
                         <label className="text-xs font-bold text-foreground ml-1">Data di Scadenza *</label>
-                        <InputText
-                            type="date"
-                            value={expirationDate}
-                            onChange={(e) => setExpirationDate(e.target.value)}
-                        />
+                        <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal bg-background h-10",
+                                        !expirationDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    {expirationDate ? (
+                                        format(parseISO(expirationDate), "PPP", { locale: it })
+                                    ) : (
+                                        <span>Seleziona una data</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={expirationDate ? parseISO(expirationDate) : undefined}
+                                    onSelect={(date) => {
+                                        if (date) {
+                                            const formatted = format(date, "yyyy-MM-dd");
+                                            setExpirationDate(formatted);
+                                            setIsDateOpen(false);
+                                        }
+                                    }}
+                                    locale={it}
+                                    disabled={{ before: today }}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-3 border-t border-border/50">

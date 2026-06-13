@@ -1,4 +1,4 @@
-import { type ReactElement, useState, useCallback, useEffect } from "react";
+import { type ReactElement, useState, useMemo, useCallback, useEffect } from "react";
 import { pantryService } from "@/services/pantryService.ts";
 import { recipeService } from "@/services/recipeService.ts";
 import type { PantryItem, Recipe } from "@/model/data-model.ts";
@@ -6,74 +6,106 @@ import Container from "@/components/ui/Container.tsx";
 import PageHeader from "@/components/PageHeader.tsx";
 import CustomButton from "../components/ui/CustomButton.tsx";
 import { FiPlus } from "react-icons/fi";
-import {mealPlannerService} from "@/services/mealPlannerService.ts";
+import { mealPlannerService } from "@/services/mealPlannerService.ts";
 import CookingMode from "@/components/pantry/CookingMode.tsx";
 import PantryList from "@/components/pantry/PantryList.tsx";
 import PantryFormModal from "@/components/pantry/PantryFormModal.tsx";
 import SuggestedRecipes from "@/components/pantry/SuggestedRecipe.tsx";
+import { toast } from "sonner";
+import { useNavigate, useParams } from "react-router-dom";
 
 export default function Pantry(): ReactElement {
+    const navigate = useNavigate();
+    const { id } = useParams<{ id: string }>();
     const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
-    const [cookingRecipe, setCookingRecipe] = useState<Recipe | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
-    const fetchData = useCallback(async () => {
-        setIsLoading(true);
+    const cookingRecipe = useMemo(() => {
+        if (!id || recipes.length === 0) return null;
+        return recipes.find(r => r.id === Number(id)) || null;
+    }, [id, recipes]);
+
+    const fetchData = useCallback(async (showLoader = true) => {
+        const controller = new AbortController();
+        if (showLoader) setIsLoading(true);
+
         try {
             const [pantryData, recipesData] = await Promise.all([
-                pantryService.getPantry(),
-                recipeService.getAllRecipes()
+                pantryService.getPantry(controller.signal),
+                recipeService.getAllRecipes(controller.signal)
             ]);
             setPantryItems(pantryData);
             setRecipes(recipesData);
-        } catch (error) {
-            toast.error(`Errore nel caricamento dei dati: ${error}`);
+        } catch (err) {
+            if (err instanceof Error && err.name !== "CanceledError" && err.name !== "AbortError") {
+                toast.error("Errore nel caricamento della dispensa");
+            }
         } finally {
-            setIsLoading(false);
+            if (showLoader) setIsLoading(false);
+            controller.abort();
         }
-    }, [addToast]);
+    }, []);
 
     useEffect(() => {
         const loadInitialData = async () => {
-            await fetchData();
+            await fetchData(true);
         };
-
         loadInitialData();
     }, [fetchData]);
 
+    useEffect(() => {
+        if (id && recipes.length > 0 && !cookingRecipe) {
+            toast.error("Ricetta non trovata");
+            navigate('/pantry', { replace: true });
+        }
+    }, [id, recipes, cookingRecipe, navigate]);
+
     const handleStartCooking = useCallback((recipe: Recipe) => {
-        setCookingRecipe(recipe);
-    }, []);
+        navigate(`/pantry/to-cook/${recipe.id}`);
+    }, [navigate]);
 
     const handleConfirmCooking = useCallback(async (mealPlanId: number, guests: number) => {
-        try {
-            await mealPlannerService.confirmMealCooked(mealPlanId, guests);
-            await fetchData();
-            setCookingRecipe(null);
-            addToast("Piatto cucinato con successo! Dispensa aggiornata.", "success");
-        } catch (error) {
-            addToast(`Errore: ${error}`, "error");
-        }
-    }, [fetchData, addToast]);
+        setIsLoading(true);
+        const savePromise = async () => {
+            try {
+                await mealPlannerService.confirmMealCooked(mealPlanId, guests);
+                await fetchData();
+            } finally {
+                setIsLoading(false);
+                navigate(`/pantry`);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Aggiorno la dispensa...",
+            success: "Piatto cucinato con successo! Dispensa aggiornata.",
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`,
+        });
+    }, [fetchData, navigate]);
 
     if (cookingRecipe) {
         return (
             <div className="py-6 max-w-4xl mx-auto px-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <CookingMode
                     recipe={cookingRecipe}
-                    onExit={() => setCookingRecipe(null)}
+                    pantryItems={pantryItems}
+                    onExit={() => navigate('/pantry', { replace: true })} // Semplificato
                     onConfirm={handleConfirmCooking}
                 />
             </div>
         );
     }
+
     return (
         <div className="flex flex-col gap-8 py-6 max-w-7xl mx-auto px-4 animate-in fade-in duration-300">
             <PageHeader
                 title="La Tua Dispensa"
                 description="Gestisci gli ingredienti a casa, monitora le scadenze e scopri cosa cucinare oggi."
+                searchValue={searchQuery}
+                onSearchChange={setSearchQuery}
+                searchPlaceholder="Cerca ingredienti o categorie..."
                 action={
                     <CustomButton
                         onClick={() => setIsAddModalOpen(true)}
@@ -94,7 +126,8 @@ export default function Pantry(): ReactElement {
                         <PantryList
                             items={pantryItems}
                             isLoading={isLoading}
-                            onPantryUpdated={fetchData}
+                            onPantryUpdated={() => fetchData(false)}
+                            searchQuery={searchQuery}
                         />
                     </Container>
                 </div>

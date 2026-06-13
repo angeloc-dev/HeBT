@@ -1,4 +1,4 @@
-import { type ReactElement, useState, useMemo } from "react";
+import {type ReactElement, useState, useMemo, useCallback} from "react";
 import type { Recipe, DraftIngredient } from "@/model/data-model.ts";
 import CustomButton from "../ui/CustomButton.tsx";
 import InputText from "@/components/ui/InputText.tsx";
@@ -6,8 +6,8 @@ import Textarea from "@/components/ui/TextArea.tsx";
 import Select from "@/components/ui/Select.tsx";
 import { FiCheck, FiPlus, FiTrash2, FiTag } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
-import { useToast } from "@/hooks/useToast.ts";
-import { SHOPPING_SECTION_GROUPS, UNIT_GROUPS } from "@/model/constants.ts";
+import {convertToAbsoluteUnit, SHOPPING_SECTION_GROUPS, UNIT_GROUPS} from "@/model/constants.ts";
+import {toast} from "sonner";
 
 interface RecipeFormProps {
     initialRecipe?: Recipe | null;
@@ -18,7 +18,6 @@ interface RecipeFormProps {
 }
 
 export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoading, onSave, onCancel }: RecipeFormProps): ReactElement {
-    const { addToast } = useToast();
     const [title, setTitle] = useState(initialRecipe?.title || "");
     const [image, setImage] = useState(initialRecipe?.image || "");
     const [description, setDescription] = useState(initialRecipe?.description || "");
@@ -75,22 +74,24 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
         return areIngredientsValid;
     }, [title, draftIngredients]);
 
-    const handleSubmit = () => {
+    const handleSubmit = useCallback(() => {
         if (!isFormValid) {
-            addToast("Controlla di aver inserito titolo e che tutti gli ingredienti abbiano nome, quantità (> 0), unità e reparto validi.", "warning");
+            toast.warning("Controlla di aver inserito titolo e che tutti gli ingredienti abbiano nome, quantità (> 0), unità e reparto validi.");
             return;
         }
-
         const validIngredients = draftIngredients.filter(ing => ing.ingredientName.trim() !== "");
-
-        const formattedIngredients = validIngredients.map(ing => ({
-            ingredientId: ing.ingredientId,
-            ingredientName: ing.ingredientName.trim(), // Rimuovi spazi bianchi extra che causano bug
-            amount: ing.unit === "qb" ? 0 : Number(ing.amount) || 0,
-            unit: ing.unit,
-            section: ing.section
-        }));
-
+        const formattedIngredients = validIngredients.map(ing => {
+            const trimmedName = ing.ingredientName.trim();
+            const rawAmount = ing.unit === "qb" ? 0 : (Number(ing.amount) || 0);
+            const absoluteData = convertToAbsoluteUnit(rawAmount, ing.unit, trimmedName);
+            return {
+                ingredientId: ing.ingredientId,
+                ingredientName: trimmedName,
+                amount: absoluteData.amount,
+                unit: absoluteData.unit,
+                section: ing.section
+            };
+        });
         const recipeData = {
             id: initialRecipe ? initialRecipe.id : 0,
             title: title.trim(),
@@ -100,9 +101,8 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
             ingredients: formattedIngredients,
             isInMealPlan: initialRecipe?.isInMealPlan || false
         };
-
         onSave(recipeData as Recipe, !!initialRecipe);
-    };
+    }, [description, draftIngredients, image, initialRecipe, instructions, isFormValid, onSave, title]);
 
     return (
         <div className="flex flex-col gap-6">

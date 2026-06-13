@@ -3,9 +3,9 @@ import axios from "axios";
 import {API_BASE_URL, formatDateLocal} from "@/model/constants.ts";
 
 export const shoppingListService = {
-    async getActiveShoppingList(): Promise<ShoppingListItem[]> {
+    async getActiveShoppingList(signal?: AbortSignal): Promise<ShoppingListItem[]> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/shopping-list`);
+            const response = await axios.get(`${API_BASE_URL}/shopping-list`, {signal});
             return response.data;
         } catch (error) {
             console.error("Errore nel reperire la lista della spesa:", error);

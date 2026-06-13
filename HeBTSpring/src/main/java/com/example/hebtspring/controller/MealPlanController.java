@@ -14,7 +14,10 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/meal-plans")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(
+        originPatterns = {"http://localhost:5173", "http://192.168.1.*:5173"},
+        allowCredentials = "true"
+)
 public class MealPlanController {
     private final MealPlanService mealPlanService;
 

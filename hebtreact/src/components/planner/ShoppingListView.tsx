@@ -1,14 +1,19 @@
 import { type ReactElement, useMemo, useState, useCallback } from "react";
 import CustomButton from "../ui/CustomButton.tsx";
-import InputText from "@/components/ui/InputText.tsx";
 import { FiPlus, FiTrash2, FiShoppingCart, FiX, FiClock } from "react-icons/fi";
 import type { ShoppingListItem } from "@/model/data-model.ts";
 import { shoppingListService } from "@/services/shoppingListService.ts";
-import { useToast } from "@/hooks/useToast.ts";
 import ShoppingListItemRow from "@/components/planner/ShoppingListItemRow.tsx";
 import AddManualItemModal from "@/components/planner/AddManualItemModal.tsx";
 import ConfirmModal from "@/components/ui/ConfirmModal.tsx";
 import { cn } from "@/lib/utils.ts";
+import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.tsx";
+import { Button } from "@/components/ui/button.tsx";
+import { format, parseISO } from "date-fns";
+import { it } from "date-fns/locale";
+import { Calendar } from "@/components/ui/calendar.tsx";
+import {CATEGORY_EXPIRATION_DAYS, getDefaultExpirationForCategory, SUPERMARKET_ORDER} from "@/model/constants.ts";
 
 interface ShoppingListViewProps {
     shoppingList: ShoppingListItem[];
@@ -17,27 +22,42 @@ interface ShoppingListViewProps {
 }
 
 export default function ShoppingListView({ shoppingList, onListUpdated, searchQuery }: ShoppingListViewProps): ReactElement {
-    const { addToast } = useToast();
     const [isClearing, setIsClearing] = useState<boolean>(false);
     const [itemToPurchase, setItemToPurchase] = useState<ShoppingListItem | null>(null);
     const [expirationDate, setExpirationDate] = useState<string>("");
     const [isPurchasing, setIsPurchasing] = useState<boolean>(false);
     const [isManualAddOpen, setIsManualAddOpen] = useState<boolean>(false);
     const [isConfirmClearOpen, setIsConfirmClearOpen] = useState<boolean>(false);
+    const [isDateOpen, setIsDateOpen] = useState<boolean>(false);
+
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
 
     const groupedList = useMemo(() => {
         const groups: Record<string, ShoppingListItem[]> = {};
         const filteredList = searchQuery.trim()
             ? shoppingList.filter(item => item.ingredientName.toLowerCase().includes(searchQuery.toLowerCase()))
             : shoppingList;
-
         filteredList.forEach(item => {
             const cat = item.category || "Altro";
             if (!groups[cat]) groups[cat] = [];
             groups[cat].push(item);
         });
+        const sortedCategories = Object.keys(groups).sort((a, b) => {
+            const indexA = SUPERMARKET_ORDER.indexOf(a);
+            const indexB = SUPERMARKET_ORDER.indexOf(b);
+            const weightA = indexA === -1 ? 999 : indexA;
+            const weightB = indexB === -1 ? 999 : indexB;
 
-        return Object.keys(groups).sort().reduce((acc, key) => {
+            if (weightA !== weightB) {
+                return weightA - weightB;
+            }
+            return a.localeCompare(b);
+        });
+        return sortedCategories.reduce((acc, key) => {
             acc[key] = groups[key];
             return acc;
         }, {} as Record<string, ShoppingListItem[]>);
@@ -54,35 +74,46 @@ export default function ShoppingListView({ shoppingList, onListUpdated, searchQu
     const handleConfirmClearList = useCallback(async () => {
         setIsConfirmClearOpen(false);
         setIsClearing(true);
-        try {
-            await shoppingListService.clearShoppingList();
-            onListUpdated();
-            addToast("Lista della spesa svuotata con successo!", "success");
-        } catch (error) {
-            addToast(`Errore nello svuotare la lista: ${error}`, "error");
-        } finally {
-            setIsClearing(false);
-        }
-    }, [onListUpdated, addToast]);
+        const savePromise = async () => {
+            try {
+                await shoppingListService.clearShoppingList();
+                onListUpdated();
+            } finally {
+                setIsClearing(false);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Svuotamento della lista in corso...",
+            success: "Lista della spesa svuotata con successo.",
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`
+        });
+    }, [onListUpdated]);
 
     const handleInitiatePurchase = useCallback((item: ShoppingListItem) => {
         setItemToPurchase(item);
-        setExpirationDate("");
+        const suggestedDate = getDefaultExpirationForCategory(item.category || "Altro");
+        setExpirationDate(format(suggestedDate, "yyyy-MM-dd"));
     }, []);
 
     const handleConfirmPurchase = useCallback(async () => {
         if (!itemToPurchase) return;
+        const expDate = expirationDate ? new Date(expirationDate) : undefined;
+
         setIsPurchasing(true);
-        try {
-            const expDate = expirationDate ? new Date(expirationDate) : undefined;
-            await shoppingListService.purchaseShoppingListItem(itemToPurchase.id, expDate);
-            onListUpdated();
-            setItemToPurchase(null);
-        } catch (error) {
-            addToast(`Errore durante l'acquisto dell'articolo: ${error}`, "error");
-        } finally {
-            setIsPurchasing(false);
-        }
+        const savePromise = async () => {
+            try {
+                await shoppingListService.purchaseShoppingListItem(itemToPurchase.id, expDate);
+                onListUpdated();
+                setItemToPurchase(null);
+            } finally {
+                setIsPurchasing(false);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Aggiungo l'articolo alla dispensa...",
+            success: "Articolo aggiunto alla dispensa con successo.",
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`
+        });
     }, [itemToPurchase, expirationDate, onListUpdated]);
 
     if (shoppingList.length === 0) {
@@ -192,13 +223,43 @@ export default function ShoppingListView({ shoppingList, onListUpdated, searchQu
                             <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                                 <FiClock className="text-primary" /> Data di Scadenza (Opzionale)
                             </label>
-                            <InputText
-                                type="date"
-                                value={expirationDate}
-                                onChange={e => setExpirationDate(e.target.value)}
-                            />
+                            <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-background h-10",
+                                            !expirationDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {expirationDate ? (
+                                            format(parseISO(expirationDate), "PPP", { locale: it })
+                                        ) : (
+                                            <span>Seleziona una data</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={expirationDate ? parseISO(expirationDate) : undefined}
+                                        onSelect={(date) => {
+                                            if (date) {
+                                                const formatted = format(date, "yyyy-MM-dd");
+                                                setExpirationDate(formatted);
+                                                if (expirationDate && parseISO(expirationDate) < date) {
+                                                    setExpirationDate(formatted);
+                                                }
+                                                setIsDateOpen(false);
+                                            }
+                                        }}
+                                        locale={it}
+                                        disabled={{ before: today }}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                             <span className="text-xs text-muted-foreground">
-                                Se lasciata vuota, il sistema imposterà una scadenza standard di 7 giorni.
+                                Se lasciata vuota, il sistema imposterà una scadenza standard di {CATEGORY_EXPIRATION_DAYS[itemToPurchase.category]} giorni.
                             </span>
                         </div>
                         <div className="flex justify-end gap-3 pt-2">

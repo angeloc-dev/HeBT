@@ -2,6 +2,7 @@ package com.example.hebtspring.service;
 
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
 
 @Service
@@ -47,37 +48,50 @@ public class UnitConversionService {
      * Converte quantità e unità di misura in Unità di Base (Grammi, Millilitri, o Pezzi).
      */
     public BaseQuantity convertToBase(BigDecimal amount, String unit, String ingredientName) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            return new BaseQuantity(new BigDecimal("5.0"), "g");
-        }
         String u = (unit != null) ? unit.toLowerCase().trim() : "";
         String name = (ingredientName != null) ? ingredientName.toLowerCase().trim() : "";
-
-        switch (u) {
-            case "g", "ml", "pz":
-                return new BaseQuantity(amount, u);
-            case "kg": return new BaseQuantity(amount.multiply(new BigDecimal("1000")), "g");
-            case "l": return new BaseQuantity(amount.multiply(new BigDecimal("1000")), "ml");
-            case "cl": return new BaseQuantity(amount.multiply(new BigDecimal("10")), "ml");
-            case "dl": return new BaseQuantity(amount.multiply(new BigDecimal("100")), "ml");
-            case "oz": return new BaseQuantity(amount.multiply(new BigDecimal("28.35")), "g");
-            case "lb": return new BaseQuantity(amount.multiply(new BigDecimal("453.59")), "g");
-            case "pizzico": return new BaseQuantity(amount.multiply(new BigDecimal("1.0")), "g");
-            case "qb": return new BaseQuantity(new BigDecimal("5.0"), "g");
+        if ("qb".equals(u)) {
+            return new BaseQuantity(BigDecimal.ZERO, "qb");
         }
-
+        BigDecimal safeAmount = (amount == null || amount.compareTo(BigDecimal.ZERO) < 0)
+                ? BigDecimal.ZERO : amount;
+        switch (u) {
+            case "g": case "ml": case "pz":
+                return new BaseQuantity(safeAmount.setScale(2, RoundingMode.HALF_UP), u);
+            case "kg":
+                return new BaseQuantity(safeAmount.multiply(new BigDecimal("1000")).setScale(2, RoundingMode.HALF_UP), "g");
+            case "l":
+                return new BaseQuantity(safeAmount.multiply(new BigDecimal("1000")).setScale(2, RoundingMode.HALF_UP), "ml");
+            case "dl":
+                return new BaseQuantity(safeAmount.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP), "ml");
+            case "cl":
+                return new BaseQuantity(safeAmount.multiply(new BigDecimal("10")).setScale(2, RoundingMode.HALF_UP), "ml");
+            case "oz":
+                return new BaseQuantity(safeAmount.multiply(new BigDecimal("28.35")).setScale(2, RoundingMode.HALF_UP), "g");
+            case "lb":
+                return new BaseQuantity(safeAmount.multiply(new BigDecimal("453.59")).setScale(2, RoundingMode.HALF_UP), "g");
+            case "pizzico":
+                return new BaseQuantity(safeAmount.multiply(new BigDecimal("2.0")).setScale(2, RoundingMode.HALF_UP), "g");
+        }
         Double weightPerCup = findDensity(name);
-
-        return switch (u) {
+        BigDecimal result = switch (u) {
             case "cup", "tazza" ->
-                    new BaseQuantity(amount.multiply(BigDecimal.valueOf(weightPerCup)), "g");
+                    safeAmount.multiply(BigDecimal.valueOf(weightPerCup));
+            case "bicchiere" ->
+                    safeAmount.multiply(BigDecimal.valueOf(weightPerCup * (200.0 / 240.0)));
+            case "tazzina" ->
+                    safeAmount.multiply(BigDecimal.valueOf(weightPerCup * (50.0 / 240.0)));
             case "tbsp", "cucchiaio" ->
-                    new BaseQuantity(amount.multiply(BigDecimal.valueOf(weightPerCup / 16.0)), "g");
+                    safeAmount.multiply(BigDecimal.valueOf(weightPerCup / 16.0));
             case "tsp", "cucchiaino" ->
-                    new BaseQuantity(amount.multiply(BigDecimal.valueOf(weightPerCup / 48.0)), "g");
+                    safeAmount.multiply(BigDecimal.valueOf(weightPerCup / 48.0));
             default ->
-                    new BaseQuantity(amount, u);
+                    safeAmount;
         };
+
+        String finalUnit = u.matches("cup|tazza|bicchiere|tazzina|tbsp|cucchiaio|tsp|cucchiaino") ? "g" : u;
+
+        return new BaseQuantity(result.setScale(2, RoundingMode.HALF_UP), finalUnit);
     }
 
     private Double findDensity(String ingredientName) {

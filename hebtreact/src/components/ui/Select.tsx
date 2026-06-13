@@ -66,11 +66,9 @@ export default function Select({
                 type="button"
                 disabled={disabled}
                 onClick={() => setIsOpen(!isOpen)}
-                // --- SAFARI & PASSWORD MANAGER FIX ---
                 data-1p-ignore="true"
                 data-lpignore="true"
                 data-form-type="other"
-                // -------------------------------------
                 className={cn(
                     "flex h-12 w-full items-center justify-between rounded-xl border border-border/50 bg-background/50 px-4 py-2 text-sm text-foreground transition-all duration-200",
                     "focus:outline-none focus:ring-2 focus:ring-primary",

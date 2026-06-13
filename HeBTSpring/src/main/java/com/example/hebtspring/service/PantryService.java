@@ -8,6 +8,7 @@ import com.example.hebtspring.repository.IngredientRepository;
 import com.example.hebtspring.repository.PantryItemRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -68,6 +69,7 @@ public class PantryService {
         PantryItem saved = pantryItemRepository.save(newPantryItem);
         return this.mapToDTO(saved);
     }
+
     public BigDecimal getAvailableAmountValidForDate(Long ingredientId, LocalDate targetDate) {
         List<PantryItem> validBatches = pantryItemRepository
                 .findByIngredientIdAndExpirationDateGreaterThanEqual(ingredientId, targetDate);
@@ -101,6 +103,17 @@ public class PantryService {
         if (remainingToConsume.compareTo(BigDecimal.ZERO) > 0) {
             throw new RuntimeException("Warning: You don't have enough in your pantry for ingredient ID. " + ingredientId);
         }
+    }
+
+    @Transactional
+    public PantryItemDTO updatePantryItem(Long id, PantryItemDTO updatedData) {
+        PantryItem existingItem = pantryItemRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Element not found in the pantry with id: " + id));
+        existingItem.setCurrentAmount(updatedData.currentAmount());
+        existingItem.setUnit(updatedData.unit());
+        existingItem.setExpirationDate(updatedData.expirationDate());
+        PantryItem savedItem = pantryItemRepository.save(existingItem);
+        return this.mapToDTO(savedItem);
     }
 
     public void deletePantryItem(Long id) {

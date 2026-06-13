@@ -1,57 +1,86 @@
-import { type ReactElement, useState, useCallback, useEffect } from "react";
+import { type ReactElement, useState, useCallback, useEffect, memo } from "react";
 import { FiTrash2, FiCheck } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
 import type { ShoppingListItem } from "@/model/data-model.ts";
 import { shoppingListService } from "@/services/shoppingListService.ts";
 import InputText from "@/components/ui/InputText.tsx";
-import { useToast } from "@/hooks/useToast.ts";
+import { toast } from "sonner";
 
 interface ShoppingListItemRowProps {
     item: ShoppingListItem;
-    onListUpdated: () => void;
+    onListUpdated: (silent?: boolean) => void;
     onPurchaseRequest: () => void;
 }
 
-export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseRequest }: ShoppingListItemRowProps): ReactElement {
-    const { addToast } = useToast();
-    const [isDeleting, setIsDeleting] = useState<boolean>(false);
-    const [amountValue, setAmountValue] = useState<number | string>(item.amount);
+const ShoppingListItemRow = memo(({ item, onListUpdated, onPurchaseRequest }: ShoppingListItemRowProps): ReactElement => {
+    const [isProcessing, setIsProcessing] = useState<boolean>(false);
+    const [displayAmount, setDisplayAmount] = useState<string>("");
+    const [displayUnit, setDisplayUnit] = useState<string>("");
+    const isQb = item.unit.toLowerCase() === "qb";
 
     useEffect(() => {
-        const loadInitialData = async () => {
-            setAmountValue(item.amount);
-        };
+        let amt = item.amount;
+        let u = item.unit.toLowerCase();
 
-        loadInitialData();
-    }, [item.amount]);
+        if (u === "g" && amt >= 1000) {
+            amt = amt / 1000;
+            u = "Kg";
+        } else if (u === "ml" && amt >= 1000) {
+            amt = amt / 1000;
+            u = "L";
+        } else if (u === "pz") {
+            amt = Math.ceil(amt);
+        }
+        const formattedAmt = amt % 1 !== 0 ? Number(amt.toFixed(2)) : amt;
+        setDisplayAmount(formattedAmt.toString());
+        setDisplayUnit(u === "kg" ? "Kg" : u === "l" ? "L" : u);
+    }, [item.amount, item.unit]);
 
     const handleAmountUpdate = useCallback(async () => {
-        const parsedAmount = Number(amountValue);
-        if (isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount === item.amount) {
-            setAmountValue(item.amount);
+        if (isQb) return;
+        const parsedDisplayAmount = Number(displayAmount);
+        if (isNaN(parsedDisplayAmount) || parsedDisplayAmount <= 0) {
+            setDisplayAmount(item.amount.toString());
             return;
         }
-        try {
-            await shoppingListService.updateItemAmount(item.id, parsedAmount);
-            onListUpdated();
-            addToast(`Quantità aggiornata con successo`, "success");
-        } catch (error) {
-            addToast(`Errore nell'aggiornamento della quantità: ${error}`, "error");
-            setAmountValue(item.amount);
-        }
-    }, [amountValue, item.amount, item.id, onListUpdated, addToast]);
+        let rawAmountToSave = parsedDisplayAmount;
+        if (displayUnit === "Kg") rawAmountToSave *= 1000;
+        if (displayUnit === "L") rawAmountToSave *= 1000;
+        rawAmountToSave = Math.round(rawAmountToSave * 100) / 100;
+        if (rawAmountToSave === item.amount) return;
+
+        setIsProcessing(true);
+        const savePromise = async () => {
+            try {
+                await shoppingListService.updateItemAmount(item.id, rawAmountToSave);
+                onListUpdated(false);
+            } finally {
+                setIsProcessing(false);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Aggiornamento quantità...",
+            success: "Quantità aggiornata.",
+            error: (error) => `Errore: ${error?.message || error}`
+        });
+    }, [displayAmount, displayUnit, item.amount, item.id, isQb, onListUpdated]);
 
     const handleDelete = useCallback(async () => {
-        setIsDeleting(true);
-        try {
-            await shoppingListService.deleteShoppingListItem(item.id);
-            onListUpdated();
-            addToast(`Voce eliminata con successo`, "success");
-        } catch (error) {
-            addToast(`Errore nell'eliminazione della voce: ${error}`, "error");
-            setIsDeleting(false);
-        }
-    }, [item.id, onListUpdated, addToast]);
+        setIsProcessing(true);
+        const savePromise = async () => {
+            try {
+                await shoppingListService.deleteShoppingListItem(item.id);
+                onListUpdated(false);
+            } finally {
+                setIsProcessing(false);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Eliminazione in corso...",
+            success: "Voce eliminata.",
+            error: (error) => `Errore: ${error?.message || error}`
+        });
+    }, [item.id, onListUpdated]);
 
     return (
         <div className="group flex items-center justify-between p-3 rounded-xl border border-border/50 bg-background hover:border-primary/30 transition-colors gap-3">
@@ -68,26 +97,32 @@ export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseReq
                 </span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                <div className="flex items-center gap-1 bg-secondary/20 rounded-lg p-1 pr-3 border border-border/50">
-                    <InputText
-                        type="number"
-                        step="0.1"
-                        min="0"
-                        value={amountValue}
-                        onChange={(e) => setAmountValue(e.target.value)}
-                        onBlur={handleAmountUpdate}
-                        className="w-14 sm:w-16 h-8 text-center bg-transparent border-none focus-visible:ring-0 text-sm font-bold p-0 shadow-none"
-                    />
-                    <span className="text-xs font-bold text-muted-foreground w-6 text-left truncate">
-                        {item.unit}
-                    </span>
-                </div>
+                {isQb ? (
+                    <div className="flex items-center justify-center bg-secondary/10 rounded-lg h-10 px-4 border border-border/50">
+                        <span className="text-sm font-bold text-muted-foreground">q.b.</span>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-1 bg-secondary/20 rounded-lg p-1 pr-3 border border-border/50">
+                        <InputText
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={displayAmount}
+                            onChange={(e) => setDisplayAmount(e.target.value)}
+                            onBlur={handleAmountUpdate}
+                            className="w-14 sm:w-16 h-8 text-center bg-transparent border-none focus-visible:ring-0 text-sm font-bold p-0 shadow-none"
+                        />
+                        <span className="text-xs font-bold text-muted-foreground w-6 text-left truncate">
+                            {displayUnit}
+                        </span>
+                    </div>
+                )}
                 <button
                     onClick={handleDelete}
-                    disabled={isDeleting}
+                    disabled={isProcessing}
                     className={cn(
                         "text-muted-foreground hover:text-destructive transition-colors p-2 rounded-md hover:bg-destructive/10 cursor-pointer shrink-0",
-                        isDeleting && "opacity-50 cursor-not-allowed"
+                        isProcessing && "opacity-50 cursor-not-allowed"
                     )}
                     title="Elimina voce"
                 >
@@ -96,4 +131,8 @@ export default function ShoppingListItemRow({ item, onListUpdated, onPurchaseReq
             </div>
         </div>
     );
-}
+});
+
+ShoppingListItemRow.displayName = "ShoppingListItemRow";
+
+export default ShoppingListItemRow;

@@ -1,4 +1,4 @@
-import { type ReactElement, useState, useEffect, useCallback } from "react";
+import {type ReactElement, useState, useEffect, useCallback, useMemo} from "react";
 import { FiX, FiSave, FiAlertCircle } from "react-icons/fi";
 import CustomButton from "../ui/CustomButton.tsx";
 import InputText from "@/components/ui/InputText.tsx";
@@ -8,6 +8,12 @@ import type { MealPlan, Recipe } from "@/model/data-model.ts";
 import { recipeService } from "@/services/recipeService.ts";
 import { mealPlannerService } from "@/services/mealPlannerService.ts";
 import { formatDateForInput, MEAL_SLOT_OPTIONS } from "@/model/constants.ts";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
+import {Button} from "@/components/ui/button.tsx";
+import {format, parseISO} from "date-fns";
+import {it} from "date-fns/locale";
+import {Calendar} from "@/components/ui/calendar.tsx";
+
 
 interface MealSelectionModalProps {
     isOpen: boolean;
@@ -36,6 +42,13 @@ export default function MealSelectionModal({
         formatDateForInput(existingMeal ? existingMeal.plannedDate : date)
     );
     const [selectedSlot, setSelectedSlot] = useState<string>(existingMeal?.mealType || mealType);
+    const [isDateOpen, setIsDateOpen] = useState<boolean>(false);
+
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
 
     const fetchRecipes = useCallback(async () => {
         setIsLoadingRecipes(true);
@@ -153,13 +166,37 @@ export default function MealSelectionModal({
                         </div>
                         <div className="flex-1 flex flex-col gap-2">
                             <label className="text-sm font-semibold text-foreground">Data</label>
-                            <InputText
-                                type="date"
-                                min={formatDateForInput(new Date())}
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="h-12"
-                            />
+                            <Popover open={isDateOpen} onOpenChange={setIsDateOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-background h-10",
+                                            !selectedDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {selectedDate ? (
+                                            format(parseISO(selectedDate), "PPP", { locale: it })
+                                        ) : (
+                                            <span>Seleziona una data</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={selectedDate ? parseISO(selectedDate) : undefined}
+                                        onSelect={(date) => {
+                                            if (date) {
+                                                setSelectedDate(format(date, "yyyy-MM-dd"));
+                                                setIsDateOpen(false);
+                                            }
+                                        }}
+                                        locale={it}
+                                        disabled={{ before: today }}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     </div>
                     <div className="flex flex-col gap-2">

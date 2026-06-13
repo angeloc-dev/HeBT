@@ -1,5 +1,5 @@
 import { type ReactElement, useState, useMemo } from "react";
-import type {PantryItem, SortMode} from "@/model/data-model.ts";
+import type { PantryItem, SortMode } from "@/model/data-model.ts";
 import { FiFilter, FiInbox } from "react-icons/fi";
 import Select from "@/components/ui/Select.tsx";
 import PantryItemRow from "@/components/pantry/PantryItemRow.tsx";
@@ -8,6 +8,7 @@ interface PantryListProps {
     items: PantryItem[];
     isLoading: boolean;
     onPantryUpdated: () => void;
+    searchQuery: string;
 }
 
 const SORT_OPTIONS = [
@@ -15,14 +16,22 @@ const SORT_OPTIONS = [
     { value: "category_asc", label: "Per Categoria (A-Z)" }
 ];
 
-export default function PantryList({ items, isLoading, onPantryUpdated }: PantryListProps): ReactElement {
+export default function PantryList({ items, isLoading, onPantryUpdated, searchQuery }: PantryListProps): ReactElement {
     const [sortMode, setSortMode] = useState<SortMode>("expiration_asc");
 
-    const sortedItems = useMemo(() => {
+    const sortedAndFilteredItems = useMemo(() => {
         if (!items || items.length === 0) return [];
-        const itemsCopy = [...items];
+        const query = searchQuery.toLowerCase().trim();
+        let result = items;
 
-        return itemsCopy.sort((a, b) => {
+        if (query) {
+            result = result.filter(item =>
+                item.ingredientName.toLowerCase().includes(query) ||
+                (item.category && item.category.toLowerCase().includes(query))
+            );
+        }
+
+        return result.sort((a, b) => {
             if (sortMode === "expiration_asc") {
                 const dateA = new Date(a.expirationDate).getTime();
                 const dateB = new Date(b.expirationDate).getTime();
@@ -36,7 +45,7 @@ export default function PantryList({ items, isLoading, onPantryUpdated }: Pantry
             }
             return 0;
         });
-    }, [items, sortMode]);
+    }, [items, sortMode, searchQuery]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -50,7 +59,7 @@ export default function PantryList({ items, isLoading, onPantryUpdated }: Pantry
                         options={SORT_OPTIONS}
                         value={sortMode}
                         onChange={(val) => setSortMode(val as SortMode)}
-                        placeholder="Seleziona ordinamento..."
+                        placeholder="Seleziona..."
                     />
                 </div>
             </div>
@@ -59,8 +68,8 @@ export default function PantryList({ items, isLoading, onPantryUpdated }: Pantry
                     Array.from({ length: 5 }).map((_, index) => (
                         <div key={`skeleton-${index}`} className="h-16 w-full rounded-xl bg-border/30 animate-pulse" />
                     ))
-                ) : sortedItems.length > 0 ? (
-                    sortedItems.map((item) => (
+                ) : sortedAndFilteredItems.length > 0 ? (
+                    sortedAndFilteredItems.map((item) => (
                         <PantryItemRow
                             key={item.id}
                             item={item}
@@ -72,9 +81,13 @@ export default function PantryList({ items, isLoading, onPantryUpdated }: Pantry
                         <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center text-muted-foreground mb-4">
                             <FiInbox className="w-8 h-8" />
                         </div>
-                        <h3 className="text-lg font-bold text-foreground mb-1">La dispensa è vuota</h3>
+                        <h3 className="text-lg font-bold text-foreground mb-1">
+                            {searchQuery ? "Nessun risultato trovato" : "La dispensa è vuota"}
+                        </h3>
                         <p className="text-sm text-muted-foreground max-w-sm">
-                            Non hai ancora aggiunto ingredienti. Clicca su "Aggiungi Ingrediente" o spunta gli articoli dalla tua Lista della Spesa per vederli qui.
+                            {searchQuery
+                                ? `Non ci sono ingredienti che corrispondono a "${searchQuery}".`
+                                : "Non hai ancora aggiunto ingredienti. Clicca su 'Aggiungi Ingrediente' o spunta gli articoli dalla spesa."}
                         </p>
                     </div>
                 )}

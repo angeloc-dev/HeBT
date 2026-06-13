@@ -12,7 +12,10 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/pantry")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(
+        originPatterns = {"http://localhost:5173", "http://192.168.1.*:5173"},
+        allowCredentials = "true"
+)
 public class PantryController {
     private final PantryService pantryService;
 
@@ -26,6 +29,13 @@ public class PantryController {
     public ResponseEntity<PantryItemDTO> addPantryItem(@RequestBody PantryItemDTO pantryItemDTO) {
         PantryItemDTO savedPantryItem = pantryService.addPantryItem(pantryItemDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedPantryItem);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PantryItemDTO> updatePantryItem(@PathVariable Long id,
+                                                          @RequestBody PantryItemDTO updatedItem) {
+        PantryItemDTO savedItem = pantryService.updatePantryItem(id, updatedItem);
+        return ResponseEntity.ok(savedItem);
     }
 
     @DeleteMapping("/{id}")

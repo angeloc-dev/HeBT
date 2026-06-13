@@ -105,7 +105,7 @@ export default function AddManualItemModal({ isOpen, onClose, onSuccess }: AddMa
         toast.promise(savePromise(), {
             loading: "Aggiunta dell'articolo in corso...",
             success: "Articolo aggiunto alla lista!",
-            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`,
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`
         });
     }, [nameQuery, amount, unit, category, selectedIngredient, onSuccess]);
 

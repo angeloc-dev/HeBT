@@ -14,7 +14,10 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/shopping-list")
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(
+        originPatterns = {"http://localhost:5173", "http://192.168.1.*:5173"},
+        allowCredentials = "true"
+)
 public class ShoppingListController {
     private final ShoppingListService shoppingListService;
 

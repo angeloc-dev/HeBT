@@ -3,13 +3,13 @@ import axios from "axios";
 import { API_BASE_URL, formatDateLocal } from "@/model/constants.ts";
 
 export const mealPlannerService = {
-    async getAllMealPlannerBetweenDates(startDate: Date, endDate: Date): Promise<MealPlan[]> {
+    async getAllMealPlannerBetweenDates(startDate: Date, endDate: Date, signal?: AbortSignal): Promise<MealPlan[]> {
         try {
             const params = {
                 startDate: formatDateLocal(startDate),
                 endDate: formatDateLocal(endDate),
             };
-            const response = await axios.get(`${API_BASE_URL}/meal-plans`, { params });
+            const response = await axios.get(`${API_BASE_URL}/meal-plans`, { params, signal });
             return response.data;
         } catch (error) {
             console.error("Errore nel reperimento dei piatti programmati:", error);

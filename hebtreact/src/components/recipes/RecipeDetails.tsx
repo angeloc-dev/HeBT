@@ -6,19 +6,8 @@ import Select from "@/components/ui/Select.tsx";
 import { FiArrowLeft, FiEdit2, FiTrash2, FiUsers, FiPlay, FiAlertCircle } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
 import { pantryService } from "@/services/pantryService.ts";
-import {useToast} from "@/hooks/useToast.ts";
-
-const GUEST_OPTIONS = Array.from({ length: 10 }, (_, i) => ({
-    value: i + 1,
-    label: `${i + 1} ${i === 0 ? "persona" : "persone"}`
-}));
-
-const formatUnit = (amount: number, unit: string) => {
-    if (unit === "qb") return "q.b.";
-    if (unit === "tbsp") return amount === 1 ? "cucchiaio" : "cucchiai";
-    if (unit === "tsp") return amount === 1 ? "cucchiaino" : "cucchiaini";
-    return unit;
-};
+import { toast } from "sonner";
+import { GUEST_OPTIONS, formatRecipeIngredient } from "@/model/constants.ts";
 
 interface RecipeDetailProps {
     recipe: Recipe;
@@ -28,7 +17,6 @@ interface RecipeDetailProps {
 }
 
 export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: RecipeDetailProps): ReactElement {
-    const { addToast } = useToast();
     const [guests, setGuests] = useState<number | "">("");
     const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
     const [isLoadingPantry, setIsLoadingPantry] = useState<boolean>(true);
@@ -40,7 +28,7 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                 const data = await pantryService.getPantry();
                 setPantryItems(data);
             } catch (error) {
-                addToast(`Errore nel caricamento della dispensa: ${error}`, "error");
+                toast.error(`Errore nel caricamento della dispensa: ${error}`);
             } finally {
                 setIsLoadingPantry(false);
             }
@@ -120,7 +108,7 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                                             {ing.section && <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-secondary/20 px-2 py-1 rounded-md">{ing.section}</span>}
                                         </div>
                                         <span className="font-bold text-primary">
-                                            {ing.unit === "qb" ? "q.b." : `${ing.amount} ${formatUnit(Number(ing.amount), ing.unit)}`}
+                                            {formatRecipeIngredient(Number(ing.amount), ing.unit, ing.ingredientName)}
                                         </span>
                                     </li>
                                 ))}
@@ -153,7 +141,7 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                             <div className="w-full sm:w-auto sm:mt-7">
                                 <CustomButton
                                     disabled={guests === "" || !canCook || isLoadingPantry}
-                                    onClick={() => navigate('/pantry')}
+                                    onClick={() => navigate(`/pantry/to-cook/${recipe.id}`)}
                                     className={cn(
                                         "w-full h-12 px-6 transition-all duration-300",
                                         guests !== "" && canCook

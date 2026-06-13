@@ -2,19 +2,19 @@ import { type ReactElement, useState, useCallback, useMemo } from "react";
 import { FiEdit2, FiTrash2, FiClock, FiAlertCircle } from "react-icons/fi";
 import type { PantryItem } from "@/model/data-model.ts";
 import { pantryService } from "@/services/pantryService.ts";
-import { useToast } from "@/hooks/useToast.ts";
 import { cn } from "@/lib/utils.ts";
 import PantryFormModal from "@/components/pantry/PantryFormModal.tsx";
+import { toast } from "sonner";
 
 interface PantryItemRowProps {
     item: PantryItem;
-    onPantryUpdated: () => void;
+    onPantryUpdated: (showLoader?: boolean) => void;
 }
 
 export default function PantryItemRow({ item, onPantryUpdated }: PantryItemRowProps): ReactElement {
-    const { addToast } = useToast();
     const [isDeleting, setIsDeleting] = useState<boolean>(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+    const isLowStock = item.currentAmount <= 5;
 
     const expirationBadge = useMemo(() => {
         const today = new Date();
@@ -53,29 +53,44 @@ export default function PantryItemRow({ item, onPantryUpdated }: PantryItemRowPr
 
     const handleDelete = useCallback(async () => {
         setIsDeleting(true);
-        try {
-            await pantryService.deletePantryItem(item.id);
-            addToast(`"${item.ingredientName}" rimosso dalla dispensa.`, "success");
-            onPantryUpdated();
-        } catch (error) {
-            addToast(`Errore durante l'eliminazione: ${error}`, "error");
-            setIsDeleting(false);
-        }
-    }, [item.id, item.ingredientName, onPantryUpdated, addToast]);
+        const savePromise = async () => {
+            try {
+                await pantryService.deletePantryItem(item.id);
+                onPantryUpdated(false);
+            } finally {
+                setIsDeleting(false);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Rimozione dell'ingrediente in corso...",
+            success: `"${item.ingredientName}" rimosso dalla dispensa.`,
+            error: (error) => `Errore durante la rimozione: ${error?.message || error}`,
+        });
+    }, [item.id, item.ingredientName, onPantryUpdated]);
 
     const BadgeIcon = expirationBadge.icon;
 
     return (
         <>
-            <div className="group flex items-center justify-between p-3 sm:p-4 rounded-xl border border-border/50 bg-background hover:border-primary/30 transition-colors gap-3">
+            <div className={cn(
+                "group flex items-center justify-between p-3 sm:p-4 rounded-xl border transition-all gap-3",
+                isLowStock
+                    ? "bg-orange-500/5 border-orange-500/30 hover:border-orange-500/60"
+                    : "bg-background border-border/50 hover:border-primary/30"
+            )}>
                 <div className="flex flex-col flex-1 min-w-0 gap-1.5">
                     <div className="flex items-center gap-2">
                         <span className="text-base font-bold text-foreground truncate" title={item.ingredientName}>
                             {item.ingredientName}
                         </span>
-                        {item.category && item.category !== "Altro" && (
+                        {item.category && item.category !== "Altro" && !isLowStock && (
                             <span className="hidden sm:flex text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-secondary/20 px-2 py-0.5 rounded-md shrink-0">
                                 {item.category}
+                            </span>
+                        )}
+                        {isLowStock && (
+                            <span className="hidden sm:flex items-center gap-1 text-[10px] uppercase font-bold text-orange-600 bg-orange-500/20 px-2 py-0.5 rounded-md shrink-0">
+                                <FiAlertCircle className="w-3 h-3" /> In Esaurimento
                             </span>
                         )}
                     </div>
@@ -88,8 +103,11 @@ export default function PantryItemRow({ item, onPantryUpdated }: PantryItemRowPr
                     </div>
                 </div>
                 <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-                    <div className="flex flex-col items-end justify-center min-w-[3rem]">
-                        <span className="text-xl font-black text-primary leading-none">
+                    <div className="flex flex-row gap-1 items-end justify-center min-w-[3rem]">
+                        <span className={cn(
+                            "text-xl font-black leading-none",
+                            isLowStock ? "text-orange-600" : "text-primary"
+                        )}>
                             {item.currentAmount}
                         </span>
                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
@@ -123,7 +141,7 @@ export default function PantryItemRow({ item, onPantryUpdated }: PantryItemRowPr
                     onClose={() => setIsEditModalOpen(false)}
                     onSuccess={() => {
                         setIsEditModalOpen(false);
-                        onPantryUpdated();
+                        onPantryUpdated(false);
                     }}
                 />
             )}

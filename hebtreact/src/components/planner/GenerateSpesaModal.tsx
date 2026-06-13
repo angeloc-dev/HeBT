@@ -1,12 +1,16 @@
 import { type ReactElement, useState, useMemo, useCallback, useEffect } from "react";
 import { FiX, FiShoppingCart, FiCheckSquare, FiSquare, FiCalendar } from "react-icons/fi";
 import CustomButton from "../ui/CustomButton.tsx";
-import InputText from "@/components/ui/InputText.tsx";
 import { cn } from "@/lib/utils.ts";
 import type { MealPlan } from "@/model/data-model.ts";
 import { shoppingListService } from "@/services/shoppingListService.ts";
 import {formatDateForInput} from "@/model/constants.ts";
 import {toast} from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover.tsx";
+import { Button } from "../ui/button.tsx";
+import { Calendar } from "../ui/calendar.tsx";
+import { format, parseISO } from "date-fns";
+import { it } from "date-fns/locale";
 
 interface GenerateSpesaModalProps {
     mealPlans: MealPlan[];
@@ -14,8 +18,9 @@ interface GenerateSpesaModalProps {
     onSuccess: () => void;
 }
 
-
 export default function GenerateSpesaModal({ mealPlans, onClose, onSuccess }: GenerateSpesaModalProps): ReactElement | null {
+    const [isStartOpen, setIsStartOpen] = useState(false);
+    const [isEndOpen, setIsEndOpen] = useState(false);
     const [startDate, setStartDate] = useState<string>(() => formatDateForInput(new Date()));
     const [endDate, setEndDate] = useState<string>(() => {
         const d = new Date();
@@ -23,6 +28,12 @@ export default function GenerateSpesaModal({ mealPlans, onClose, onSuccess }: Ge
         return formatDateForInput(d);
     });
     const [isGenerating, setIsGenerating] = useState<boolean>(false);
+
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
 
     const mealsInRange = useMemo(() => {
         if (!startDate || !endDate) return [];
@@ -120,13 +131,77 @@ export default function GenerateSpesaModal({ mealPlans, onClose, onSuccess }: Ge
                             <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                                 <FiCalendar className="text-primary" /> Da
                             </label>
-                            <InputText type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                            <Popover open={isStartOpen} onOpenChange={setIsStartOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-background h-10",
+                                            !startDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {startDate ? (
+                                            format(parseISO(startDate), "PPP", { locale: it })
+                                        ) : (
+                                            <span>Seleziona una data</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={startDate ? parseISO(startDate) : undefined}
+                                        onSelect={(date) => {
+                                            if (date) {
+                                                const formatted = format(date, "yyyy-MM-dd");
+                                                setStartDate(formatted);
+                                                if (endDate && parseISO(endDate) < date) {
+                                                    setEndDate(formatted);
+                                                }
+                                                setIsStartOpen(false);
+                                            }
+                                        }}
+                                        locale={it}
+                                        disabled={{ before: today }}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                         <div className="flex-1 flex flex-col gap-2">
                             <label className="text-sm font-semibold text-foreground flex items-center gap-2">
                                 <FiCalendar className="text-primary" /> A
                             </label>
-                            <InputText type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                            <Popover open={isEndOpen} onOpenChange={setIsEndOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal bg-background h-10",
+                                            !endDate && "text-muted-foreground"
+                                        )}
+                                    >
+                                        {endDate ? (
+                                            format(parseISO(endDate), "PPP", { locale: it })
+                                        ) : (
+                                            <span>Seleziona una data</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={endDate ? parseISO(endDate) : undefined}
+                                        onSelect={(date) => {
+                                            if (date) {
+                                                setEndDate(format(date, "yyyy-MM-dd"));
+                                                setIsEndOpen(false);
+                                            }
+                                        }}
+                                        locale={it}
+                                        disabled={{ before: startDate ? parseISO(startDate) : today }}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     </div>
                     {mealsInRange.length === 0 ? (

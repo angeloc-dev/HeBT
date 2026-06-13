@@ -3,9 +3,9 @@ import { FiPlus, FiTrash2, FiEdit2, FiUsers } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
 import type { MealPlan } from "@/model/data-model.ts";
 import { mealPlannerService } from "@/services/mealPlannerService.ts";
-import { useToast } from "@/hooks/useToast.ts";
 import { MEAL_SLOTS } from "@/model/constants.ts";
 import MealSelectionModal from "@/components/planner/MealSelectionModal.tsx";
+import { toast } from "sonner";
 
 interface PlannerDayCardProps {
     date: Date;
@@ -15,7 +15,6 @@ interface PlannerDayCardProps {
 }
 
 export default function PlannerDayCard({ date, meals, onMealsUpdated, readOnly = false }: PlannerDayCardProps): ReactElement {
-    const { addToast } = useToast();
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
     const [mealToEdit, setMealToEdit] = useState<MealPlan | null>(null);
@@ -37,8 +36,13 @@ export default function PlannerDayCard({ date, meals, onMealsUpdated, readOnly =
     }, [date]);
 
     const mealsBySlot = useMemo(() => {
-        const map = new Map<string, MealPlan>();
-        meals.forEach(m => map.set(m.mealType, m));
+        const map = new Map<string, MealPlan[]>();
+        meals.forEach(m => {
+            if (!map.has(m.mealType)) {
+                map.set(m.mealType, []);
+            }
+            map.get(m.mealType)!.push(m);
+        });
         return map;
     }, [meals]);
 
@@ -59,16 +63,20 @@ export default function PlannerDayCard({ date, meals, onMealsUpdated, readOnly =
     const handleDeleteClick = useCallback(async (id: number) => {
         if (isPast || readOnly) return;
         setIsDeleting(id);
-        try {
-            await mealPlannerService.deleteMealPlanner(id);
-            addToast(`Pasto eliminato correttamente.`, "success");
-            onMealsUpdated();
-        } catch (error) {
-            addToast(`Errore nell'eliminazione del pasto: ${error}`, "error");
-        } finally {
-            setIsDeleting(null);
-        }
-    }, [onMealsUpdated, isPast, readOnly, addToast]);
+        const savePromise = async () => {
+            try {
+                await mealPlannerService.deleteMealPlanner(id);
+                onMealsUpdated();
+            } finally {
+                setIsDeleting(null);
+            }
+        };
+        toast.promise(savePromise(), {
+            loading: "Eliminazione del pasto in corso...",
+            success: "Pasto eliminato correttamente",
+            error: (error) => `Errore durante il salvataggio: ${error?.message || error}`
+        });
+    }, [onMealsUpdated, isPast, readOnly]);
 
     const handleModalClose = useCallback(() => {
         setIsModalOpen(false);
@@ -78,9 +86,9 @@ export default function PlannerDayCard({ date, meals, onMealsUpdated, readOnly =
 
     const handleModalSuccess = useCallback(() => {
         setIsModalOpen(false);
-        addToast(`Piatto salvato con successo`, "success");
+        toast.success(`Piatto salvato con successo`);
         onMealsUpdated();
-    }, [onMealsUpdated, addToast]);
+    }, [onMealsUpdated]);
 
     const dayName = date.toLocaleDateString('it-IT', { weekday: 'short' }).toUpperCase();
     const dayNumber = date.getDate();
@@ -89,7 +97,7 @@ export default function PlannerDayCard({ date, meals, onMealsUpdated, readOnly =
         <>
             <div className={cn(
                 "flex flex-col rounded-2xl border transition-all h-full overflow-hidden",
-                isToday ? "border-primary shadow-[0_0_15px_rgba(var(--primary),0.15)] bg-primary/5" : "border-border/50 bg-background/50",
+                isToday ? "border-primary shadow-[0_0_15px_rgba(16,185,129,0.15)] bg-primary/5" : "border-border/50 bg-background/50",
                 isPast && "opacity-60"
             )}>
                 <div className={cn(
@@ -106,52 +114,67 @@ export default function PlannerDayCard({ date, meals, onMealsUpdated, readOnly =
                         </div>
                     ) : (
                         MEAL_SLOTS.map((slot) => {
-                            const meal = mealsBySlot.get(slot.id);
+                            const slotMeals = mealsBySlot.get(slot.id) || [];
                             const SlotIcon = slot.icon;
+                            if (slotMeals.length === 0 && readOnly) return null;
 
-                            // Se siamo in modalità readOnly e non c'è il pasto per questo slot, lo nascondiamo
-                            if (!meal && readOnly) return null;
-
-                            if (meal) {
+                            if (slotMeals.length > 0) {
                                 return (
-                                    <div key={slot.id} className="group relative flex flex-col p-3 rounded-xl bg-background border border-border/50 shadow-sm transition-all hover:border-primary/50">
-                                        <div className="flex flex-wrap items-center justify-between gap-1 mb-1.5">
-                                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wide min-w-0">
-                                                <SlotIcon className="w-3 h-3 shrink-0" />
-                                                <span className="truncate">{slot.label}</span>
+                                    <div key={slot.id} className="flex flex-col p-2.5 rounded-xl bg-background border border-border/50 shadow-sm gap-2 transition-all hover:border-primary/30">
+                                        <div className="flex items-center justify-between pb-1.5 border-b border-border/50">
+                                            <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wide">
+                                                <SlotIcon className="w-3.5 h-3.5 shrink-0" />
+                                                <span>{slot.label}</span>
                                             </div>
-                                            <div className="flex items-center flex-nowrap shrink-0 text-[10px] font-bold bg-secondary/30 px-1.5 py-0.5 rounded text-muted-foreground">
-                                                <FiUsers className="w-3 h-3 shrink-0 mr-1"/>
-                                                <span>{meal.servings}</span>
-                                            </div>
+                                            {!isPast && !readOnly && (
+                                                <button
+                                                    onClick={() => handleAddClick(slot.id)}
+                                                    className="text-primary hover:bg-primary/20 p-1 rounded-md transition-colors cursor-pointer"
+                                                    title={`Aggiungi un altro piatto a ${slot.label}`}
+                                                >
+                                                    <FiPlus className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
                                         </div>
-                                        <p className={cn(
-                                            "text-sm font-semibold leading-tight line-clamp-2",
-                                            isPast && !readOnly ? "text-muted-foreground" : "text-foreground"
-                                        )}>
-                                            {meal.recipeTitle}
-                                        </p>
-
-                                        {/* Nascondi il pannello di overlay se in readOnly */}
-                                        {!isPast && !readOnly && (
-                                            <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-xl">
-                                                <button
-                                                    onClick={() => handleEditClick(meal)}
-                                                    className="p-2 bg-primary text-primary-foreground rounded-lg hover:scale-110 transition-transform cursor-pointer"
-                                                    title="Modifica o Sposta"
-                                                >
-                                                    <FiEdit2 className="w-4 h-4 shrink-0" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteClick(meal.id)}
-                                                    disabled={isDeleting === meal.id}
-                                                    className="p-2 bg-destructive text-destructive-foreground rounded-lg hover:scale-110 transition-transform disabled:opacity-50 disabled:scale-100 cursor-pointer"
-                                                    title="Rimuovi"
-                                                >
-                                                    <FiTrash2 className="w-4 h-4 shrink-0" />
-                                                </button>
-                                            </div>
-                                        )}
+                                        <div className="flex flex-col gap-1.5">
+                                            {slotMeals.map(meal => (
+                                                <div key={meal.id} className="group relative flex flex-col p-2 rounded-lg bg-secondary/20 border border-transparent hover:border-border/50 transition-all overflow-hidden">
+                                                    <div>
+                                                        <p
+                                                            title={meal.recipeTitle}
+                                                            className={cn(
+                                                            "text-xs font-bold leading-tight line-clamp-2",
+                                                            isPast && !readOnly ? "text-muted-foreground" : "text-foreground"
+                                                        )}>
+                                                            {meal.recipeTitle}
+                                                        </p>
+                                                        <div className="flex items-center mt-1 text-[10px] font-bold text-muted-foreground">
+                                                            <FiUsers className="w-3 h-3 shrink-0 mr-1"/>
+                                                            <span>{meal.servings} {meal.servings === 1 ? 'porzione' : 'porzioni'}</span>
+                                                        </div>
+                                                    </div>
+                                                    {!isPast && !readOnly && (
+                                                        <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity bg-background p-1 rounded-md shadow-sm border border-border">
+                                                            <button
+                                                                onClick={() => handleEditClick(meal)}
+                                                                className="p-1.5 text-primary hover:bg-primary/20 rounded-md transition-colors cursor-pointer"
+                                                                title="Modifica"
+                                                            >
+                                                                <FiEdit2 className="w-3 h-3 shrink-0" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteClick(meal.id)}
+                                                                disabled={isDeleting === meal.id}
+                                                                className="p-1.5 text-destructive hover:bg-destructive/20 rounded-md transition-colors disabled:opacity-50 cursor-pointer"
+                                                                title="Rimuovi"
+                                                            >
+                                                                <FiTrash2 className="w-3 h-3 shrink-0" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 );
                             }

@@ -1,4 +1,5 @@
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
 import Home from "./pages/Home";
 import Recipes from "./pages/Recipes";
@@ -10,7 +11,7 @@ import {Toaster} from "sonner";
 function App() {
     return (
         <Router>
-            <Toaster position="top-right" />
+            <Toaster position="top-center" theme="dark" />
             <div className="relative h-screen bg-background overflow-hidden">
                 <div className="absolute inset-0 z-0 pointer-events-none">
                     <SoftAurora
@@ -39,8 +40,10 @@ function App() {
                             <Route path="/recipes/:id" element={<Recipes />} />
                             <Route path="/planner" element={<Planner />} />
                             <Route path="/pantry" element={<Pantry />} />
+                            <Route path="/pantry/to-cook/:id" element={<Pantry />} />
                         </Routes>
                     </main>
+                    <Footer />
                 </div>
 
             </div>

@@ -1,39 +1,76 @@
 import { type ReactElement, useState, useMemo } from "react";
-import type { Recipe } from "@/model/data-model.ts";
+import type { Recipe, PantryItem } from "@/model/data-model.ts";
 import CustomButton from "../ui/CustomButton.tsx";
 import Select from "@/components/ui/Select.tsx";
-import { FiArrowLeft, FiCheckCircle } from "react-icons/fi";
+import { FiArrowLeft, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
-
-const GUEST_OPTIONS = Array.from({ length: 10 }, (_, i) => ({
-    value: i + 1,
-    label: `${i + 1} ${i === 0 ? "persona" : "persone"}`
-}));
-
-const formatUnit = (amount: number, unit: string) => {
-    if (unit === "qb") return "q.b.";
-    if (unit === "tbsp") return amount === 1 ? "cucchiaio" : "cucchiai";
-    if (unit === "tsp") return amount === 1 ? "cucchiaino" : "cucchiaini";
-    return unit;
-};
+import { GUEST_OPTIONS, formatRecipeIngredient } from "@/model/constants.ts";
 
 interface CookingModeProps {
     recipe: Recipe;
+    pantryItems: PantryItem[];
     onExit: () => void;
     onConfirm: (recipeId: number, guests: number) => void;
 }
 
-export default function CookingMode({ recipe, onExit, onConfirm }: CookingModeProps): ReactElement {
+export default function CookingMode({ recipe, pantryItems, onExit, onConfirm }: CookingModeProps): ReactElement {
     const [guests, setGuests] = useState<number | "">("");
     const [isConfirming, setIsConfirming] = useState<boolean>(false);
 
+    const inventory = useMemo(() => {
+        const map = new Map<string, number>();
+        pantryItems.forEach(item => {
+            const name = item.ingredientName.toLowerCase().trim();
+            const current = map.get(name) || 0;
+            map.set(name, current + item.currentAmount);
+        });
+        return map;
+    }, [pantryItems]);
+
+    const { ingredientStatus, maxPossibleGuests, canCook } = useMemo(() => {
+        let maxGuests = Infinity;
+        let allAvailable = true;
+        const multiplier = guests === "" ? 1 : guests;
+
+        const status = recipe.ingredients?.map(ing => {
+            const baseAmount = Number(ing.amount);
+            const requiredAmount = baseAmount * multiplier;
+            const isQb = ing.unit === "qb";
+            const invName = ing.ingredientName.toLowerCase().trim();
+            const availableAmount = inventory.get(invName) || 0;
+
+            if (!isQb && baseAmount > 0) {
+                const possibleForThis = Math.floor(availableAmount / baseAmount);
+                if (possibleForThis < maxGuests) {
+                    maxGuests = possibleForThis;
+                }
+            }
+
+            const hasEnough = isQb || availableAmount >= requiredAmount;
+            if (!hasEnough) allAvailable = false;
+
+            return {
+                ...ing,
+                requiredAmount,
+                availableAmount,
+                hasEnough,
+                isQb
+            };
+        }) || [];
+        if (maxGuests === Infinity) maxGuests = 10;
+
+        return {
+            ingredientStatus: status,
+            maxPossibleGuests: Math.max(0, maxGuests),
+            canCook: guests !== "" && allAvailable
+        };
+    }, [recipe.ingredients, guests, inventory]);
+
     const handleConfirm = () => {
-        if (guests === "") return;
+        if (!canCook || guests === "") return;
         setIsConfirming(true);
         onConfirm(recipe.id, guests);
     };
-
-    const isReadyToCook = useMemo(() => guests !== "", [guests]);
 
     return (
         <div className="flex flex-col gap-8 bg-background/50 rounded-3xl p-4 sm:p-8 border border-border/50 shadow-2xl">
@@ -42,18 +79,26 @@ export default function CookingMode({ recipe, onExit, onConfirm }: CookingModePr
                     onClick={onExit}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 hover:text-amber-600 transition-colors font-bold cursor-pointer"
                 >
-                    <FiArrowLeft className="w-5 h-5" /> Esci dalla Cottura
+                    <FiArrowLeft className="w-5 h-5" /> Esci
                 </button>
                 <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                        Ospiti:
-                    </span>
-                    <div className="w-40">
+                    <div className="flex flex-col items-end">
+                        <span className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                            Ospiti
+                        </span>
+                        <span className={cn(
+                            "text-[10px] font-black uppercase mt-0.5",
+                            maxPossibleGuests === 0 ? "text-destructive" : "text-emerald-500"
+                        )}>
+                            Max {maxPossibleGuests} {maxPossibleGuests === 1 ? 'porzione' : 'porzioni'}
+                        </span>
+                    </div>
+                    <div className="w-32">
                         <Select
                             options={GUEST_OPTIONS}
                             value={guests}
                             onChange={(val) => setGuests(Number(val))}
-                            placeholder="Quanti siete?"
+                            placeholder="Seleziona..."
                         />
                     </div>
                 </div>
@@ -69,20 +114,36 @@ export default function CookingMode({ recipe, onExit, onConfirm }: CookingModePr
                     <h2 className="text-2xl font-bold text-primary mb-6 border-b border-primary/20 pb-2">
                         Da preparare
                     </h2>
-                    <ul className="flex flex-col gap-4">
-                        {recipe.ingredients?.map((ing, i) => {
-                            const multiplier = guests === "" ? 1 : (guests as number);
-                            const finalAmount = Number(ing.amount) * multiplier;
-
-                            return (
-                                <li key={i} className="flex justify-between items-center text-lg">
-                                    <span className="font-semibold text-foreground">{ing.ingredientName}</span>
-                                    <span className="font-black text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                                        {ing.unit === "qb" ? "q.b." : `${finalAmount} ${formatUnit(finalAmount, ing.unit)}`}
+                    <ul className="flex flex-col gap-3">
+                        {ingredientStatus.map((ing, i) => (
+                            <li key={i} className="flex flex-col gap-1 border-b border-border/30 last:border-0 pb-3 last:pb-0">
+                                <div className="flex justify-between items-center text-lg">
+                                    <span className={cn(
+                                        "font-semibold",
+                                        !ing.hasEnough && guests !== "" ? "text-destructive" : "text-foreground"
+                                    )}>
+                                        {ing.ingredientName}
                                     </span>
-                                </li>
-                            );
-                        })}
+                                    <span className={cn(
+                                        "font-black px-3 py-1 rounded-lg text-sm sm:text-base",
+                                        !ing.hasEnough && guests !== ""
+                                            ? "text-destructive bg-destructive/10"
+                                            : "text-primary bg-primary/10"
+                                    )}>
+                                        {formatRecipeIngredient(ing.requiredAmount, ing.unit, ing.ingredientName)}
+                                    </span>
+                                </div>
+                                {!ing.hasEnough && guests !== "" && (
+                                    <div className="flex items-center gap-1.5 text-[11px] font-bold text-destructive/80 bg-destructive/5 p-2 rounded-md mt-1">
+                                        <FiAlertTriangle className="w-4 h-4 shrink-0" />
+                                        <span>
+                                            Disponibili: {formatRecipeIngredient(ing.availableAmount, ing.unit, ing.ingredientName)}{" "}
+                                            (mancano {formatRecipeIngredient(ing.requiredAmount - ing.availableAmount, ing.unit, ing.ingredientName)})
+                                        </span>
+                                    </div>
+                                )}
+                            </li>
+                        ))}
                     </ul>
                 </div>
                 <div className="bg-card rounded-2xl p-6 border border-border shadow-sm h-fit">
@@ -97,21 +158,24 @@ export default function CookingMode({ recipe, onExit, onConfirm }: CookingModePr
             <div className="mt-8 flex justify-center border-t border-border/50 pt-8">
                 <CustomButton
                     onClick={handleConfirm}
-                    disabled={!isReadyToCook || isConfirming}
+                    disabled={!canCook || isConfirming}
                     className={cn(
                         "w-full sm:w-auto h-16 px-12 transition-all duration-300 rounded-2xl border-none",
-                        isReadyToCook && !isConfirming
+                        canCook && !isConfirming
                             ? "bg-emerald-500 hover:bg-emerald-600 hover:scale-105 shadow-[0_0_30px_rgba(16,185,129,0.4)]"
-                            : "bg-muted cursor-not-allowed opacity-50"
+                            : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
                     )}
                 >
-                    <span className={cn("flex items-center justify-center gap-3 text-2xl font-black", isReadyToCook ? "text-white" : "text-muted-foreground")}>
-                        <FiCheckCircle className="w-8 h-8" />
-                        {isConfirming ? "Svuotamento Dispensa..." : "Conferma Cottura"}
+                    <span className="flex items-center justify-center gap-3 text-xl sm:text-2xl font-black">
+                        {canCook && !isConfirming && <FiCheckCircle className="w-8 h-8" />}
+                        {isConfirming
+                            ? "Svuotamento Dispensa..."
+                            : !canCook && guests !== ""
+                                ? "Ingredienti Insufficienti"
+                                : "Conferma Cottura"}
                     </span>
                 </CustomButton>
             </div>
-
         </div>
     );
 }

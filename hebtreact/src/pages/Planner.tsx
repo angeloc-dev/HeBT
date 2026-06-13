@@ -5,14 +5,14 @@ import type {ShoppingListItem, MealPlan, PlannerView} from "@/model/data-model.t
 import { shoppingListService } from "@/services/shoppingListService.ts";
 import { mealPlannerService } from "@/services/mealPlannerService.ts";
 import PageHeader from "@/components/PageHeader.tsx";
-import {useToast} from "@/hooks/useToast.ts";
 import PlannerCalendar from "@/components/planner/PlannerCalendar.tsx";
 import ShoppingListView from "@/components/planner/ShoppingListView.tsx";
 import GenerateSpesaModal from "@/components/planner/GenerateSpesaModal.tsx";
 import type { PlannerCalendarRef } from "@/components/planner/PlannerCalendar.tsx";
+import {toast} from "sonner";
+import {cn} from "@/lib/utils.ts";
 
 export default function Planner(): ReactElement {
-    const { addToast } = useToast();
     const [currentView, setCurrentView] = useState<PlannerView>('CALENDAR');
     const [isGeneratingSpesa, setIsGeneratingSpesa] = useState<boolean>(false);
     const [searchQuery, setSearchQuery] = useState<string>("");
@@ -21,36 +21,47 @@ export default function Planner(): ReactElement {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const calendarRef = useRef<PlannerCalendarRef>(null);
 
-    const fetchShoppingList = useCallback(async () => {
+    const fetchShoppingList = useCallback(async (showLoader: boolean) => {
+        const controller = new AbortController();
+        if (showLoader) setIsLoading(true);
         try {
-            const data = await shoppingListService.getActiveShoppingList();
+            const data = await shoppingListService.getActiveShoppingList(controller.signal);
             setShoppingList(data);
-        } catch (error) {
-            addToast(`Errore nel caricamento della lista della spesa: ${error}`, "error");
+        } catch (err) {
+            if (err instanceof Error && err.name !== "CanceledError" && err.name !== "AbortError") {
+                toast.error("Errore nel caricamento della lista della spesa");
+            }
+        } finally {
+            if (showLoader) setIsLoading(false);
+            controller.abort();
         }
     }, []);
 
-    const fetchMealPlans = useCallback(async () => {
-        setIsLoading(true);
+    const fetchMealPlans = useCallback(async (showLoader: boolean) => {
+        const controller = new AbortController();
+        if (showLoader) setIsLoading(true);
         try {
             const today = new Date();
             const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
             const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
             const data = await mealPlannerService.getAllMealPlannerBetweenDates(startOfMonth, endOfMonth);
             setMealPlans(data);
-        } catch (error) {
-            addToast(`Errore nel caricamento dei pasti: ${error}`, "error");
+        } catch (err) {
+            if (err instanceof Error && err.name !== "CanceledError" && err.name !== "AbortError") {
+                toast.error("Errore nel caricamento del calendario");
+            }
         } finally {
-            setIsLoading(false);
+            if (showLoader) setIsLoading(false);
+            controller.abort();
         }
     }, []);
 
     useEffect(() => {
         const loadInitialData = async () => {
             if (currentView === 'SHOPPING_LIST') {
-                await fetchShoppingList();
+                await fetchShoppingList(true);
             } else {
-                await fetchMealPlans();
+                await fetchMealPlans(true);
             }
         };
 
@@ -73,7 +84,7 @@ export default function Planner(): ReactElement {
     const handleSpesaGenerated = useCallback(async () => {
         setIsGeneratingSpesa(false);
         setCurrentView('SHOPPING_LIST');
-        await fetchShoppingList();
+        await fetchShoppingList(false);
     }, [fetchShoppingList]);
 
     const searchResults = useMemo(() => {
@@ -142,14 +153,6 @@ export default function Planner(): ReactElement {
                 }
                 action={
                     <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-                        <CustomButton
-                            onClick={toggleView}
-                            className="w-full md:w-auto h-12 px-6 shrink-0"
-                        >
-                            <span className="flex items-center justify-center gap-2 text-base font-bold text-foreground">
-                                {currentView === 'CALENDAR' ? "Vai alla Lista Spesa" : "Vai al Calendario"}
-                            </span>
-                        </CustomButton>
                         {currentView === 'CALENDAR' && (
                             <CustomButton
                                 onClick={handleGenerateSpesaClick}
@@ -162,6 +165,34 @@ export default function Planner(): ReactElement {
                                 </span>
                             </CustomButton>
                         )}
+                        <div className="inline-flex items-center w-full md:w-auto h-12 p-1 rounded-xl border border-border/40 shrink-0 select-none">
+                            <button
+                                type="button"
+                                onClick={() => currentView !== 'CALENDAR' && toggleView()}
+                                className={cn(
+                                    "flex-1 md:flex-none md:px-5 h-full flex items-center justify-center gap-2 text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer",
+                                    currentView === 'CALENDAR'
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/20"
+                                )}
+                            >
+                                <FiCalendar className={cn("w-4 h-4", currentView === 'CALENDAR' ? "text-primary" : "")} />
+                                <span>Calendario</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => currentView === 'CALENDAR' && toggleView()}
+                                className={cn(
+                                    "flex-1 md:flex-none md:px-5 h-full flex items-center justify-center gap-2 text-sm font-bold rounded-lg transition-all duration-200 cursor-pointer",
+                                    currentView !== 'CALENDAR'
+                                        ? "bg-background text-foreground shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/20"
+                                )}
+                            >
+                                <FiShoppingCart className={cn("w-4 h-4", currentView !== 'CALENDAR' ? "text-emerald-500" : "")} />
+                                <span>Lista Spesa</span>
+                            </button>
+                        </div>
                     </div>
                 }
             />
@@ -195,12 +226,12 @@ export default function Planner(): ReactElement {
                 <PlannerCalendar
                     ref={calendarRef}
                     mealPlans={mealPlans}
-                    onMealsUpdated={fetchMealPlans}
+                    onMealsUpdated={() => fetchMealPlans(false)}
                 />
             ) : (
                 <ShoppingListView
                     shoppingList={shoppingList}
-                    onListUpdated={fetchShoppingList}
+                    onListUpdated={() => fetchShoppingList(false)}
                     searchQuery={searchQuery}
                 />
             )}

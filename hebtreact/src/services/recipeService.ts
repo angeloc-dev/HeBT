@@ -3,9 +3,9 @@ import type { Recipe } from "@/model/data-model.ts";
 import axios from "axios";
 
 export const recipeService = {
-    async getAllRecipes(): Promise<Recipe[]> {
+    async getAllRecipes(signal?: AbortSignal): Promise<Recipe[]> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/recipes`);
+            const response = await axios.get(`${API_BASE_URL}/recipes`, { signal });
             return response.data;
         } catch (error) {
             console.error("Errore nel recupero delle ricette:", error);
