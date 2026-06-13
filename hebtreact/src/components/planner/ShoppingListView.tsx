@@ -1,6 +1,6 @@
 import { type ReactElement, useMemo, useState, useCallback } from "react";
 import CustomButton from "../ui/CustomButton.tsx";
-import { FiPlus, FiTrash2, FiShoppingCart, FiX, FiClock } from "react-icons/fi";
+import {FiPlus, FiTrash2, FiShoppingCart, FiX, FiClock, FiShare} from "react-icons/fi";
 import type { ShoppingListItem } from "@/model/data-model.ts";
 import { shoppingListService } from "@/services/shoppingListService.ts";
 import ShoppingListItemRow from "@/components/planner/ShoppingListItemRow.tsx";
@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { format, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar.tsx";
-import {CATEGORY_EXPIRATION_DAYS, getDefaultExpirationForCategory, SUPERMARKET_ORDER} from "@/model/constants.ts";
+import {CATEGORY_EXPIRATION_DAYS, formatShoppingListUnit, getDefaultExpirationForCategory, SUPERMARKET_ORDER} from "@/model/constants.ts";
 
 interface ShoppingListViewProps {
     shoppingList: ShoppingListItem[];
@@ -116,6 +116,34 @@ export default function ShoppingListView({ shoppingList, onListUpdated, searchQu
         });
     }, [itemToPurchase, expirationDate, onListUpdated]);
 
+    const handleExportList = useCallback(async () => {
+        let textToShare = "LA MIA LISTA DELLA SPESA\n\n";
+        Object.entries(groupedList).forEach(([category, items]) => {
+            textToShare += `📦 ${category}\n`;
+            items.forEach(item => {
+                textToShare += `- [ ] ${formatShoppingListUnit(item.amount, item.unit)} di ${item.ingredientName}\n`;
+            });
+            textToShare += "\n";
+        });
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: 'Lista della Spesa',
+                    text: textToShare,
+                });
+            } catch {
+                toast.success("Condivisione annullata");
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(textToShare);
+                toast.success("Lista copiata negli appunti! Incollala nelle Note.");
+            } catch (err) {
+                toast.error(`Errore durante la copia della lista: ${err}`);
+            }
+        }
+    }, [groupedList]);
+
     if (shoppingList.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center gap-4 py-20 mt-4 animate-in fade-in zoom-in-95 bg-background/30 rounded-2xl border border-dashed border-border/50">
@@ -156,6 +184,14 @@ export default function ShoppingListView({ shoppingList, onListUpdated, searchQu
                     </span>
                 </h2>
                 <div className="flex items-center gap-3 w-full md:w-auto">
+                    <CustomButton
+                        variant="secondary"
+                        onClick={handleExportList}
+                        className="flex-1 md:flex-none text-foreground"
+                        title="Esporta nelle Note o Condividi"
+                    >
+                        <FiShare className="w-4 h-4" /> Condividi
+                    </CustomButton>
                     <CustomButton
                         variant="destructive"
                         onClick={handleClearListClick}

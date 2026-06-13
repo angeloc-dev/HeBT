@@ -11,7 +11,11 @@ function Navbar(): ReactElement {
         <nav className="bg-background/80 backdrop-blur-md border-b border-border/50 sticky top-0 z-[100]">
             <div className="container relative mx-auto px-4 md:h-12 h-16 flex items-center justify-between">
                 <Link to="/" className="flex items-center gap-2 cursor-pointer" onClick={closeMobileMenu}>
-                    <span className="font-logo text-2xl font-extrabold tracking-wide text-foreground">HeBT</span>
+                    <span className="font-logo text-2xl font-extrabold tracking-wide text-foreground">
+                        H
+                        <span>e</span>
+                        BT
+                    </span>
                 </Link>
                 <ul className="md:space-x-8 hidden md:flex">
                     <li><NavLink to="/" className="nav-link">Home</NavLink></li>
