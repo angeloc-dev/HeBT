@@ -136,4 +136,3 @@ Sentiti libero di aprire issue o pull request se vuoi migliorare il progetto. Pe
 ## License
 **Copyright (c) 2026 Angelo Cannella. Tutti i diritti riservati.**
 Il codice sorgente di questo progetto è pubblicato a scopo di portfolio e consultazione. Non è consentito l'utilizzo, la copia, la modifica, la distribuzione o la commercializzazione di questo software, né delle sue parti logiche e grafiche, senza il previo consenso scritto dell'autore.
-Il server backend sarà in ascolto su http://localhost:8080. Lo schema del database (tabelle, vincoli di unicità e relazioni) verrà autogenerato al primo avvio grazie alla configurazione ddl-auto=update.
