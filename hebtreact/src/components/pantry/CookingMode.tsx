@@ -160,7 +160,7 @@ export default function CookingMode({ recipe, pantryItems, onExit, onConfirm }: 
                     onClick={handleConfirm}
                     disabled={!canCook || isConfirming}
                     className={cn(
-                        "w-full sm:w-auto h-16 px-12 transition-all duration-300 rounded-2xl border-none",
+                        "w-full sm:w-auto h-16 px-12 text-foreground transition-all duration-300 rounded-2xl border-none",
                         canCook && !isConfirming
                             ? "bg-emerald-500 hover:bg-emerald-600 hover:scale-105 shadow-[0_0_30px_rgba(16,185,129,0.4)]"
                             : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"

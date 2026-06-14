@@ -94,6 +94,19 @@ export const formatRecipeIngredient = (
             }
         }
     }
+    if (unit === "cup" || unit === "tbsp" || unit === "tsp") {
+        switch (unit) {
+            case "cup":
+                if (amountInGramsOrMl > 1) return `${Math.round(amountInGramsOrMl)} Tazze`;
+                else return `${Math.round(amountInGramsOrMl)} Tazza`;
+            case "tbsp":
+                if (amountInGramsOrMl > 1) return `${Math.round(amountInGramsOrMl)} Cucchiai`;
+                else return `${Math.round(amountInGramsOrMl)} Cucchiaio`;
+            case "tsp":
+                if (amountInGramsOrMl > 1) return `${Math.round(amountInGramsOrMl)} Cucchiaini`;
+                else return `${Math.round(amountInGramsOrMl)} Cucchiaino`;
+        }
+    }
     return `${Math.round(amountInGramsOrMl)} ${unit}`;
 };
 

@@ -83,7 +83,7 @@ export default function PantryItemRow({ item, onPantryUpdated }: PantryItemRowPr
                         <span className="text-base font-bold text-foreground truncate" title={item.ingredientName}>
                             {item.ingredientName}
                         </span>
-                        {item.category && item.category !== "Altro" && !isLowStock && (
+                        {item.category && item.category !== "Altro" && (
                             <span className="hidden sm:flex text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-secondary/20 px-2 py-0.5 rounded-md shrink-0">
                                 {item.category}
                             </span>

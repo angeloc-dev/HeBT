@@ -7,6 +7,7 @@ import Planner from "./pages/Planner";
 import Pantry from "./pages/Pantry";
 import SoftAurora from "./components/SoftAurora.tsx";
 import {Toaster} from "sonner";
+import NotFound from "@/pages/NotFound.tsx";
 
 function App() {
     return (
@@ -41,6 +42,7 @@ function App() {
                             <Route path="/planner" element={<Planner />} />
                             <Route path="/pantry" element={<Pantry />} />
                             <Route path="/pantry/to-cook/:id" element={<Pantry />} />
+                            <Route path="*" element={<NotFound />} />
                         </Routes>
                     </main>
                     <Footer />
