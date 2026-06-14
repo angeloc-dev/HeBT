@@ -14,8 +14,8 @@
 
 
 [Cooking Mode Dinamico]<img width="1438" height="848" alt="Cooking View" src="https://github.com/user-attachments/assets/9d444ccf-6193-456c-b9e6-208a3fa2b31a" />
-[Gestione Dispensa]<img width="1432" height="846" alt="Pantry View" src="https://github.com/user-attachments/assets/3e5d906b-2079-48d3-93a1-8d50c1075d28" />
-[Meal Planner]<img width="1440" height="855" alt="Meal Planner View" src="https://github.com/user-attachments/assets/43b75136-3246-448e-8cc0-7808dab51476" />
+[Meal Planner]<img width="1432" height="846" alt="Pantry View" src="https://github.com/user-attachments/assets/3e5d906b-2079-48d3-93a1-8d50c1075d28" />
+[Gestione Dispensa]<img width="1440" height="855" alt="Meal Planner View" src="https://github.com/user-attachments/assets/43b75136-3246-448e-8cc0-7808dab51476" />
 
 
 ---
