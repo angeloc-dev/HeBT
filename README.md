@@ -118,22 +118,22 @@ L'interfaccia backend espone le seguenti API principali:
 
 ---
 
-** Testing
+## Testing
 Attualmente il progetto si basa su Manual Testing e flussi di validazione end-to-end gestiti direttamente in fase di sviluppo. L'implementazione di unit test con JUnit 5 / Mockito (per il backend) e test di integrazione frontend (es. Cypress o Vitest) è prevista per le release future > v1.0.0 per garantire maggiore stabilità nelle conversioni matematiche e nella logica del calcolatore della dispensa.
 
 ---
 
-** Deployment & CI/CD
+## Deployment & CI/CD
 Il progetto risiede in una repository Mono-repo su GitHub. La versione stabile di riferimento per la produzione si trova nel branch main, marchiata con il tag v1.0.0.
 
 ---
 
-** Contributing
+## Contributing
 Sentiti libero di aprire issue o pull request se vuoi migliorare il progetto. Per modifiche sostanziali, apri prima una issue per discutere di ciò che vorresti cambiare. 
 
 ---
 
-** License
+## License
 **Copyright (c) 2026 Angelo Cannella. Tutti i diritti riservati.**
 Il codice sorgente di questo progetto è pubblicato a scopo di portfolio e consultazione. Non è consentito l'utilizzo, la copia, la modifica, la distribuzione o la commercializzazione di questo software, né delle sue parti logiche e grafiche, senza il previo consenso scritto dell'autore.
 Il server backend sarà in ascolto su http://localhost:8080. Lo schema del database (tabelle, vincoli di unicità e relazioni) verrà autogenerato al primo avvio grazie alla configurazione ddl-auto=update.
