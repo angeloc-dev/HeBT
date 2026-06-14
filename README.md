@@ -86,35 +86,35 @@ L'app sarà visibile all'indirizzo http://localhost:5173.
 ## API Endpoints (RESTful)
 
 L'interfaccia backend espone le seguenti API principali:
- **Ingredients**
-* GET /api/ingredients/search - Cerca ingredienti esistenti.
-* POST /api/ingredients - Crea un nuovo ingrediente di base.
- **Meal Plans (Planner)**
-* GET /api/meal-plans?startDate={date}&endDate={date} - Ottiene i pasti programmati in un range.
-* POST /api/meal-plans/scheduleMeal - Inserisce un pasto nel calendario.
-* PUT /api/meal-plans/{id} - Aggiorna i dettagli di un pasto.
-* POST /api/meal-plans/{id}/cook - Cucina un pasto (sottrae ingredienti dalla dispensa).
-* DELETE /api/meal-plans/{id} - Rimuove un pasto dal calendario.
- **Pantry (Dispensa)**
-* GET /api/pantry - Recupera l'inventario della dispensa.
-* POST /api/pantry - Aggiunge manualmente un elemento.
-* PUT /api/pantry/{id} - Modifica quantità/scadenza di un lotto.
-* DELETE /api/pantry/{id} - Rimuove un elemento dalla dispensa.
- **Recipes**
-* GET /api/recipes - Ottiene tutte le ricette.
-* GET /api/recipes/{id} - Dettaglio singola ricetta.
-* GET /api/recipes/cookable - Suggerisce ricette in base alla dispensa attuale.
-* POST /api/recipes - Crea una nuova ricetta.
-* PUT /api/recipes/{id} - Modifica una ricetta esistente.
-* DELETE /api/recipes/{id} - Elimina una ricetta.
- **Shopping List**
-* GET /api/shopping-list - Ottiene la lista della spesa attiva.
-* POST /api/shopping-list/generate - Genera una lista incrociando i Meal Plans con la Dispensa.
-* POST /api/shopping-list - Aggiunta manuale alla lista.
-* PUT /api/shopping-list/{id}/amount - Modifica la quantità da acquistare.
-* POST /api/shopping-list/{id}/purchase - Spunta l'elemento (lo sposta in dispensa calcolando la scadenza dinamica).
-* DELETE /api/shopping-list/{id} - Rimuove un singolo articolo.
-* DELETE /api/shopping-list/clear - Svuota completamente la lista.
+- **Ingredients**
+  * GET /api/ingredients/search - Cerca ingredienti esistenti.
+  * POST /api/ingredients - Crea un nuovo ingrediente di base.
+- **Meal Plans (Planner)**
+  * GET /api/meal-plans?startDate={date}&endDate={date} - Ottiene i pasti programmati in un range.
+  * POST /api/meal-plans/scheduleMeal - Inserisce un pasto nel calendario.
+  * PUT /api/meal-plans/{id} - Aggiorna i dettagli di un pasto.
+  * POST /api/meal-plans/{id}/cook - Cucina un pasto (sottrae ingredienti dalla dispensa).
+  * DELETE /api/meal-plans/{id} - Rimuove un pasto dal calendario.
+- **Pantry (Dispensa)**
+  * GET /api/pantry - Recupera l'inventario della dispensa.
+  * POST /api/pantry - Aggiunge manualmente un elemento.
+  * PUT /api/pantry/{id} - Modifica quantità/scadenza di un lotto.
+  * DELETE /api/pantry/{id} - Rimuove un elemento dalla dispensa.
+- **Recipes**
+  * GET /api/recipes - Ottiene tutte le ricette.
+  * GET /api/recipes/{id} - Dettaglio singola ricetta.
+  * GET /api/recipes/cookable - Suggerisce ricette in base alla dispensa attuale.
+  * POST /api/recipes - Crea una nuova ricetta.
+  * PUT /api/recipes/{id} - Modifica una ricetta esistente.
+  * DELETE /api/recipes/{id} - Elimina una ricetta.
+- **Shopping List**
+  * GET /api/shopping-list - Ottiene la lista della spesa attiva.
+  * POST /api/shopping-list/generate - Genera una lista incrociando i Meal Plans con la Dispensa.
+  * POST /api/shopping-list - Aggiunta manuale alla lista.
+  * PUT /api/shopping-list/{id}/amount - Modifica la quantità da acquistare.
+  * POST /api/shopping-list/{id}/purchase - Spunta l'elemento (lo sposta in dispensa calcolando la scadenza dinamica).
+  * DELETE /api/shopping-list/{id} - Rimuove un singolo articolo.
+  * DELETE /api/shopping-list/clear - Svuota completamente la lista.
 
 ---
 
