@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,6 +47,15 @@ public class RecipeController {
     public ResponseEntity<RecipeDTO> editRecipe(@PathVariable("id") Long id, @RequestBody RecipeDTO recipeDTO) {
         RecipeDTO updatedRecipe = recipeService.updateRecipe(id, recipeDTO);
         return ResponseEntity.ok(updatedRecipe);
+    }
+
+    @PostMapping("/{id}/cook")
+    public ResponseEntity<Void> cookRecipe(
+            @PathVariable("id") Long id,
+            @RequestBody(required = false) Map<String, Integer> payload) {
+        Integer guests = (payload != null && payload.containsKey("guests")) ? payload.get("guests") : null;
+        recipeService.cookRecipeFree(id, guests);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

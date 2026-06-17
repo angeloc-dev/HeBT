@@ -1,13 +1,10 @@
-import { type ReactElement, useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { type ReactElement, useState, useEffect } from "react";
 import type { Recipe, PantryItem } from "@/model/data-model.ts";
-import CustomButton from "../ui/CustomButton.tsx";
-import Select from "@/components/ui/Select.tsx";
-import { FiArrowLeft, FiEdit2, FiTrash2, FiUsers, FiPlay, FiAlertCircle } from "react-icons/fi";
+import { FiArrowLeft, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { cn } from "@/lib/utils.ts";
 import { pantryService } from "@/services/pantryService.ts";
 import { toast } from "sonner";
-import { GUEST_OPTIONS, formatRecipeIngredient } from "@/model/constants.ts";
+import { formatRecipeIngredient } from "@/model/constants.ts";
 
 interface RecipeDetailProps {
     recipe: Recipe;
@@ -17,10 +14,8 @@ interface RecipeDetailProps {
 }
 
 export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: RecipeDetailProps): ReactElement {
-    const [guests, setGuests] = useState<number | "">("");
-    const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
-    const [isLoadingPantry, setIsLoadingPantry] = useState<boolean>(true);
-    const navigate = useNavigate();
+    const [, setPantryItems] = useState<PantryItem[]>([]);
+    const [, setIsLoadingPantry] = useState<boolean>(true);
 
     useEffect(() => {
         const fetchPantry = async () => {
@@ -35,24 +30,6 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
         };
         fetchPantry();
     }, []);
-
-    const canCook = useMemo(() => {
-        if (guests === "" || isLoadingPantry) return false;
-        const pantryTotals = new Map<string, number>();
-        pantryItems.forEach(item => {
-            const name = item.ingredientName.toLowerCase();
-            pantryTotals.set(name, (pantryTotals.get(name) || 0) + Number(item.currentAmount));
-        });
-        for (const reqIng of recipe.ingredients || []) {
-            if (reqIng.unit === "qb") continue;
-            const requiredAmount = Number(reqIng.amount) * (guests as number);
-            const availableAmount = pantryTotals.get(reqIng.ingredientName.toLowerCase()) || 0;
-            if (availableAmount < requiredAmount) {
-                return false;
-            }
-        }
-        return true;
-    }, [guests, recipe.ingredients, pantryItems, isLoadingPantry]);
 
     return (
         <div className="flex flex-col gap-6">
@@ -97,17 +74,23 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                             </div>
                         )}
                     </div>
-                    <div className="order-4 lg:order-none bg-background rounded-2xl border border-border/50 p-6 shadow-sm">
+                    <div className="order-3 lg:order-none bg-background rounded-2xl border border-border/50 p-6 shadow-sm">
                         <h3 className="text-xl font-bold text-foreground mb-4 border-b border-border/50 pb-2">Ingredienti</h3>
                         {recipe.ingredients && recipe.ingredients.length > 0 ? (
                             <ul className="flex flex-col gap-3">
                                 {recipe.ingredients.map((ing, i) => (
-                                    <li key={i} className="flex justify-between items-center p-2 rounded-lg hover:bg-secondary/5 transition-colors border-b border-border/30 last:border-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-semibold text-foreground">{ing.ingredientName}</span>
-                                            {ing.section && <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-secondary/20 px-2 py-1 rounded-md">{ing.section}</span>}
+                                    <li key={i} className="group flex justify-between items-start sm:items-center p-3 rounded-lg hover:bg-secondary/5 transition-colors border-b border-border/30 last:border-0 gap-4">
+                                        <div className="flex-1 min-w-0 leading-tight">
+                                            <span className="font-semibold text-foreground break-words mr-2 align-middle">
+                                                {ing.ingredientName}
+                                            </span>
+                                            {ing.section && (
+                                                <span className="inline-block align-middle text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-secondary/20 px-2 py-0.5 rounded-md mb-0.5">
+                                                    {ing.section}
+                                                </span>
+                                            )}
                                         </div>
-                                        <span className="font-bold text-primary">
+                                        <span className="font-bold text-primary shrink-0 whitespace-nowrap text-right mt-1 sm:mt-0">
                                             {formatRecipeIngredient(Number(ing.amount), ing.unit, ing.ingredientName)}
                                         </span>
                                     </li>
@@ -125,46 +108,7 @@ export default function RecipeDetail({ recipe, onBack, onEdit, onDelete }: Recip
                             {recipe.description || "Nessuna descrizione disponibile per questo piatto."}
                         </p>
                     </div>
-                    <div className="order-3 lg:order-none">
-                        <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 overflow-visible">
-                            <div className="flex flex-col gap-2 flex-1 w-full relative">
-                                <label className="text-sm font-bold text-foreground flex items-center gap-2">
-                                    <FiUsers className="text-primary" /> Ospiti a cena
-                                </label>
-                                <Select
-                                    options={GUEST_OPTIONS}
-                                    value={guests}
-                                    onChange={(val) => setGuests(Number(val))}
-                                    placeholder="Seleziona numero..."
-                                />
-                            </div>
-                            <div className="w-full sm:w-auto sm:mt-7">
-                                <CustomButton
-                                    disabled={guests === "" || !canCook || isLoadingPantry}
-                                    onClick={() => navigate(`/pantry/to-cook/${recipe.id}`)}
-                                    className={cn(
-                                        "w-full h-12 px-6 transition-all duration-300",
-                                        guests !== "" && canCook
-                                            ? "bg-primary hover:bg-primary/90 hover:scale-105 shadow-[0_0_15px_rgba(34,197,94,0.3)]"
-                                            : "bg-muted cursor-not-allowed opacity-50"
-                                    )}
-                                >
-                                    <span className={cn("flex items-center justify-center gap-2 text-base font-bold", guests !== "" && canCook ? "text-foreground" : "text-muted-foreground")}>
-                                        {isLoadingPantry ? (
-                                            "Controllo dispensa..."
-                                        ) : guests === "" ? (
-                                            <><FiPlay className="w-5 h-5" /> Cucina piatto</>
-                                        ) : !canCook ? (
-                                            <><FiAlertCircle className="w-5 h-5" /> Ingredienti insufficienti</>
-                                        ) : (
-                                            <><FiPlay className="w-5 h-5" /> Cucina piatto</>
-                                        )}
-                                    </span>
-                                </CustomButton>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="order-5 lg:order-none bg-background rounded-2xl border border-border/50 p-6 shadow-sm">
+                    <div className="order-4 lg:order-none bg-background rounded-2xl border border-border/50 p-6 shadow-sm">
                         <h3 className="text-xl font-bold text-foreground mb-4 border-b border-border/50 pb-2">Procedimento</h3>
                         <div className="text-foreground/90 whitespace-pre-wrap leading-relaxed">
                             {recipe.instructions || "Istruzioni non fornite."}

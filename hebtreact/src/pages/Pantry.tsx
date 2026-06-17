@@ -6,7 +6,6 @@ import Container from "@/components/ui/Container.tsx";
 import PageHeader from "@/components/PageHeader.tsx";
 import CustomButton from "../components/ui/CustomButton.tsx";
 import { FiPlus } from "react-icons/fi";
-import { mealPlannerService } from "@/services/mealPlannerService.ts";
 import CookingMode from "@/components/pantry/CookingMode.tsx";
 import PantryList from "@/components/pantry/PantryList.tsx";
 import PantryFormModal from "@/components/pantry/PantryFormModal.tsx";
@@ -67,11 +66,11 @@ export default function Pantry(): ReactElement {
         navigate(`/pantry/to-cook/${recipe.id}`);
     }, [navigate]);
 
-    const handleConfirmCooking = useCallback(async (mealPlanId: number, guests: number) => {
+    const handleConfirmCooking = useCallback(async (recipeId: number, guests: number) => {
         setIsLoading(true);
         const savePromise = async () => {
             try {
-                await mealPlannerService.confirmMealCooked(mealPlanId, guests);
+                await recipeService.cookRecipeFree(recipeId, guests);
                 await fetchData();
             } finally {
                 setIsLoading(false);

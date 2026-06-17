@@ -1,6 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import CustomButton from "../components/ui/CustomButton";
-import { FiBook, FiPackage, FiSearch, FiCalendar, FiClock, FiTrendingDown, FiCheckCircle } from "react-icons/fi";
+import {
+    FiBook,
+    FiPackage,
+    FiCalendar,
+    FiClock,
+    FiTrendingDown,
+    FiCheckCircle,
+    FiBookOpen
+} from "react-icons/fi";
 import { Swiper as SwiperCarousel, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import "swiper/css/free-mode";
@@ -205,7 +213,7 @@ export default function Home() {
                         <SwiperSlide className="w-full h-auto">
                             <div className="flex flex-col items-center justify-center w-full h-64 bg-secondary/5 border border-dashed border-border/50 rounded-2xl p-6 text-center animate-in fade-in duration-500">
                                 <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mb-3">
-                                    <FiSearch className="w-6 h-6 text-muted-foreground" />
+                                    <FiBookOpen className="w-6 h-6 text-muted-foreground" />
                                 </div>
                                 <span className="text-foreground font-bold text-lg mb-1">Nessuna ricetta trovata</span>
                                 <span className="text-muted-foreground text-sm max-w-sm">

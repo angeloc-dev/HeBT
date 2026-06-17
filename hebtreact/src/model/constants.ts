@@ -242,12 +242,12 @@ export const SHOPPING_SECTION_GROUPS: OptionGroup[] = [
 ];
 
 export const CATEGORY_EXPIRATION_DAYS: Record<string, number> = {
-    "Ortofrutta": 7,
+    "Ortofrutta": 30,
     "Panetteria e Pasticceria": 3,
     "Macelleria": 3,
-    "Pescheria": 1,
+    "Pescheria": 3,
     "Gastronomia": 3,
-    "Freschi": 5,
+    "Freschi": 30,
     "Pasta e Riso": 365,
     "Sughi, Salse e Condimenti": 180,
     "Olio e Spezie": 365,

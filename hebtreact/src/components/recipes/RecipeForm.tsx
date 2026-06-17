@@ -151,10 +151,30 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
             </div>
             <div className="p-5 rounded-xl bg-background/30 border border-border/30 mt-2 overflow-visible">
                 <h3 className="text-lg font-bold mb-4 text-primary">Ingredienti *</h3>
-                <div className="flex flex-col gap-3 mb-4">
+                <div className="flex flex-col gap-4 mb-4">
                     {draftIngredients.map((ing, index) => (
-                        <div key={index} className="flex flex-col md:flex-row gap-3 items-start md:items-center animate-in fade-in duration-200">
-                            <div className="relative w-full md:flex-1">
+                        <div
+                            key={index}
+                            className="grid grid-cols-12 gap-2 sm:gap-3 items-center animate-in fade-in duration-200 pb-4 border-b border-border/30 last:border-0 last:pb-0"
+                        >
+                            <div className="col-span-3 sm:col-span-2 lg:col-span-1">
+                                <InputText
+                                    placeholder="Qtà"
+                                    value={ing.amount}
+                                    onChange={(e) => updateIngredientRow(index, 'amount', e.target.value)}
+                                    disabled={ing.unit === "qb"}
+                                    className=" text-center"
+                                />
+                            </div>
+                            <div className="col-span-9 sm:col-span-4 lg:col-span-3">
+                                <Select
+                                    groups={UNIT_GROUPS}
+                                    value={ing.unit}
+                                    onChange={(val) => updateIngredientRow(index, 'unit', val)}
+                                    placeholder="Unità..."
+                                />
+                            </div>
+                            <div className="col-span-12 sm:col-span-6 lg:col-span-4 relative">
                                 <InputText
                                     placeholder="Ingrediente (es. Sale)"
                                     value={ing.ingredientName}
@@ -162,7 +182,8 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                                     onBlur={() => setTimeout(() => setActiveSuggestionIndex(null), 150)}
                                     onChange={(e) => updateIngredientRow(index, 'ingredientName', e.target.value)}
                                     className="w-full"
-                                    name={`ing-name-${index}`}
+                                    name={`food-item-${index}`}
+                                    autoComplete="off"
                                 />
                                 {activeSuggestionIndex === index && ing.ingredientName.length > 0 && (
                                     <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-background/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl">
@@ -186,37 +207,19 @@ export default function RecipeForm({ initialRecipe, allKnownIngredients, isLoadi
                                     </div>
                                 )}
                             </div>
-                            <div className="flex gap-2 sm:gap-3 w-full md:w-auto">
-                                <InputText
-                                    type="number"
-                                    placeholder="Qtà"
-                                    value={ing.amount}
-                                    onChange={(e) => updateIngredientRow(index, 'amount', e.target.value)}
-                                    className="w-16 sm:w-20"
-                                    min="0"
-                                    step="0.1"
-                                    disabled={ing.unit === "qb"}
+                            <div className="col-span-9 sm:col-span-10 lg:col-span-3">
+                                <Select
+                                    groups={SHOPPING_SECTION_GROUPS}
+                                    value={ing.section}
+                                    onChange={(val) => updateIngredientRow(index, 'section', val)}
+                                    placeholder="Reparto..."
                                 />
-                                <div className="w-28 sm:w-36 shrink-0">
-                                    <Select
-                                        groups={UNIT_GROUPS}
-                                        value={ing.unit}
-                                        onChange={(val) => updateIngredientRow(index, 'unit', val)}
-                                        placeholder="Unità..."
-                                    />
-                                </div>
-                                <div className="w-28 sm:w-36 shrink-0">
-                                    <Select
-                                        groups={SHOPPING_SECTION_GROUPS}
-                                        value={ing.section}
-                                        onChange={(val) => updateIngredientRow(index, 'section', val)}
-                                        placeholder="Reparto..."
-                                    />
-                                </div>
+                            </div>
+                            <div className="col-span-3 sm:col-span-2 lg:col-span-1 flex justify-end">
                                 <button
                                     onClick={() => removeIngredientRow(index)}
                                     disabled={draftIngredients.length === 1}
-                                    className="h-12 w-12 flex-shrink-0 flex items-center justify-center rounded-xl border border-border/50 text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer"
+                                    className="h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center rounded-xl border border-border/50 text-destructive hover:bg-destructive/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer w-full lg:w-12"
                                 >
                                     <FiTrash2 className="w-5 h-5" />
                                 </button>

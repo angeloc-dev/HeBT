@@ -30,6 +30,14 @@ export const recipeService = {
             throw error;
         }
     },
+    async cookRecipeFree(id: number, guests: number): Promise<void> {
+        try {
+            await axios.post(`${API_BASE_URL}/recipes/${id}/cook`, { guests });
+        } catch (error) {
+            console.error("Errore nel confermare la cottura libera della ricetta:", error);
+            throw error;
+        }
+    },
     async createRecipe(recipe: Recipe): Promise<Recipe> {
         try {
             const response = await axios.post(`${API_BASE_URL}/recipes`, recipe);

@@ -28,6 +28,7 @@ public class RecipeService {
     private final MealPlanRepository mealPlanRepository;
     private final PantryItemRepository pantryItemRepository;
     private final UnitConversionService unitConversionService;
+    private final PantryService pantryService;
 
     private RecipeDTO mapToDTO(Recipe recipe) {
         List<RecipeIngredientDTO> ingredientDTOs = recipe.getIngredients().stream()
@@ -230,5 +231,20 @@ public class RecipeService {
         Recipe recipe = recipeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ricetta non trovata: " + id));
         recipeRepository.delete(recipe);
+    }
+
+    @Transactional
+    public void cookRecipeFree(Long recipeId, Integer guests) {
+        Recipe recipe = recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new IllegalArgumentException("Recipe not found."));
+        BigDecimal finalServings = (guests != null) ? new BigDecimal(guests) : BigDecimal.ONE;
+
+        for (RecipeIngredient ri : recipe.getIngredients()) {
+            BigDecimal rawTotalNeeded = ri.getAmount().multiply(finalServings);
+            UnitConversionService.BaseQuantity baseQty = unitConversionService.convertToBase(
+                    rawTotalNeeded, ri.getUnit(), ri.getIngredient().getName()
+            );
+            pantryService.consumeIngredientFifo(ri.getIngredient().getId(), baseQty.amount());
+        }
     }
 }

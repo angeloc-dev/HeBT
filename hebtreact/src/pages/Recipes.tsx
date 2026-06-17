@@ -3,7 +3,7 @@ import Container from "@/components/ui/Container.tsx";
 import CardRecipe from "@/components/CardRecipe.tsx";
 import type { Recipe } from "@/model/data-model.ts";
 import { recipeService } from "@/services/recipeService.ts";
-import { FiPlus, FiX, FiBook, FiTag } from "react-icons/fi";
+import {FiPlus, FiX, FiBook, FiTag, FiBookOpen} from "react-icons/fi";
 import { useNavigate, useParams } from "react-router-dom";
 import ConfirmModal from "@/components/ui/ConfirmModal.tsx";
 import RecipeDetail from "../components/recipes/RecipeDetails.tsx";
@@ -88,6 +88,8 @@ export default function Recipes(): ReactElement {
                     await recipeService.createRecipe(recipeData);
                 }
             } finally {
+                setIsAddingRecipe(false);
+                setEditingRecipeId(null);
                 setIsLoading(false);
             }
         };
@@ -220,12 +222,24 @@ export default function Recipes(): ReactElement {
                                 Array.from({ length: 8 }).map((_, index) => (
                                     <div key={`skeleton-${index}`} className="relative h-64 w-full rounded-2xl bg-border/30 animate-pulse" />
                                 ))
+                            ) : recipes.length === 0 ? (
+                               <div>
+                                   <div className="flex flex-col items-center justify-center w-full h-64 bg-secondary/5 border border-dashed border-border/50 rounded-2xl p-6 text-center animate-in fade-in duration-500">
+                                       <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mb-3">
+                                           <FiBookOpen className="w-6 h-6 text-muted-foreground" />
+                                       </div>
+                                       <span className="text-foreground font-bold text-lg mb-1">Nessuna ricetta trovata</span>
+                                       <span className="text-muted-foreground text-sm max-w-sm">
+                                           Non ci sono ricette disponibili al momento. Aggiungi il tuo primo piatto per vederlo qui!
+                                       </span>
+                                   </div>
+                               </div>
                             ) : (
                                 recipes.map((recipe) => (
-                                    <div key={recipe.id} onClick={() => handleOpenRecipe(recipe.id)} className="transition-transform duration-300 hover:-translate-y-1 cursor-pointer">
-                                        <CardRecipe recipe={recipe} />
-                                    </div>
-                                ))
+                                <div key={recipe.id} onClick={() => handleOpenRecipe(recipe.id)} className="transition-transform duration-300 hover:-translate-y-1 cursor-pointer">
+                                    <CardRecipe recipe={recipe} />
+                                </div>
+                            ))
                             )}
                         </div>
                     </Container>
