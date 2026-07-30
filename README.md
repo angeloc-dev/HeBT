@@ -67,7 +67,7 @@ docker-compose up -d
 ```
 (Per spegnere il DB: 
 ```bash
-docker-compose down)
+docker-compose down
 ```
 
 ### 2. Avvio del Server Backend (Spring Boot)
